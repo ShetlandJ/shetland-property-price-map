@@ -372,6 +372,52 @@ html, body {
   margin-top: 0;
 }
 
+/* Summary cards */
+.report-summary-cards {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.summary-card {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  border: 1px solid #e2e8f0;
+}
+
+.summary-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-sub {
+  font-size: 11px;
+  color: #aaa;
+  margin-top: 2px;
+}
+
+/* Top sales table address column */
+#top-sales-table td:first-child {
+  font-size: 12px;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .info-close-btn {
   width: 36px;
   height: 36px;

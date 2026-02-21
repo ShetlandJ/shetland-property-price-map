@@ -303,14 +303,34 @@ infoOverlay.innerHTML = `
     </div>
 
     <div class="info-tab-content" id="tab-reports">
+      <div class="report-summary-cards" id="report-summary-cards"></div>
+
       <h3>Average Sale Price Over Time</h3>
       <div class="chart-container"><canvas id="chart-price-trend"></canvas></div>
+
+      <h3>Year-on-Year Price Change</h3>
+      <div class="chart-container"><canvas id="chart-yoy"></canvas></div>
+
       <h3>Number of Sales per Year</h3>
       <div class="chart-container"><canvas id="chart-volume"></canvas></div>
+
+      <h3>Total Market Value by Year</h3>
+      <div class="chart-container"><canvas id="chart-market-value"></canvas></div>
+
+      <h3>Sales by Month</h3>
+      <div class="chart-container"><canvas id="chart-monthly"></canvas></div>
+
       <h3>Sales by Price Band</h3>
       <div class="chart-container"><canvas id="chart-distribution"></canvas></div>
+
       <h3>Average Price by Area</h3>
       <div class="chart-container"><canvas id="chart-area"></canvas></div>
+
+      <h3>Top 10 Most Expensive Sales</h3>
+      <table class="info-table" id="top-sales-table">
+        <thead><tr><th>Address</th><th>Price</th><th>Date</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 `;
@@ -371,9 +391,69 @@ function computeAreaStats() {
     .slice(0, 12);
 }
 
+function computeMonthlyStats() {
+  const months = Array.from({ length: 12 }, () => 0);
+  properties.forEach((p) => {
+    if (p.date) {
+      const m = new Date(p.date).getMonth();
+      months[m]++;
+    }
+  });
+  return months;
+}
+
+function computeYoYChange() {
+  const changes = [];
+  for (let i = 1; i < yearStats.length; i++) {
+    const pct = ((yearStats[i].avg - yearStats[i - 1].avg) / yearStats[i - 1].avg) * 100;
+    changes.push({ year: yearStats[i].year, pct: Math.round(pct * 10) / 10 });
+  }
+  return changes;
+}
+
+function computeMarketValue() {
+  return yearStats.map((s) => ({
+    year: s.year,
+    total: s.avg * s.count,
+  }));
+}
+
+function buildSummaryCards() {
+  const totalSales = properties.length;
+  const totalValue = properties.reduce((sum, p) => sum + p.price, 0);
+  const allPrices = properties.map((p) => p.price).sort((a, b) => a - b);
+  const median = allPrices[Math.floor(allPrices.length / 2)];
+  const latest = yearStats[yearStats.length - 1];
+  const first = yearStats[0];
+  const overallChange = ((latest.avg - first.avg) / first.avg * 100).toFixed(0);
+
+  const cards = [
+    { label: "Total Sales", value: totalSales.toLocaleString("en-GB") },
+    { label: "Total Value", value: "£" + (totalValue / 1e6).toFixed(1) + "m" },
+    { label: "Median Price", value: formatPrice(median) },
+    { label: "Price Change", value: (overallChange > 0 ? "+" : "") + overallChange + "%", sub: `${first.year}–${latest.year}` },
+  ];
+
+  document.getElementById("report-summary-cards").innerHTML = cards.map((c) =>
+    `<div class="summary-card"><div class="summary-value">${c.value}</div><div class="summary-label">${c.label}</div>${c.sub ? `<div class="summary-sub">${c.sub}</div>` : ""}</div>`
+  ).join("");
+}
+
+function buildTopSalesTable() {
+  const top = [...properties].sort((a, b) => b.price - a.price).slice(0, 10);
+  const tbody = document.querySelector("#top-sales-table tbody");
+  tbody.innerHTML = top.map((p) => {
+    const dateStr = p.date ? new Date(p.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" }) : "";
+    return `<tr><td>${p.address}</td><td class="price-cell">${formatPrice(p.price)}</td><td>${dateStr}</td></tr>`;
+  }).join("");
+}
+
 function initCharts() {
   Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   Chart.defaults.color = "#555";
+
+  buildSummaryCards();
+  buildTopSalesTable();
 
   // 1. Price trend line chart
   new Chart(document.getElementById("chart-price-trend"), {
@@ -478,6 +558,86 @@ function initCharts() {
           beginAtZero: true,
         },
       },
+    },
+  });
+
+  // 5. Year-on-year price change
+  const yoyData = computeYoYChange();
+  new Chart(document.getElementById("chart-yoy"), {
+    type: "bar",
+    data: {
+      labels: yoyData.map((d) => d.year),
+      datasets: [{
+        label: "Year-on-Year Change",
+        data: yoyData.map((d) => d.pct),
+        backgroundColor: yoyData.map((d) => d.pct >= 0 ? "rgba(34, 197, 94, 0.7)" : "rgba(239, 68, 68, 0.7)"),
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => (ctx.parsed.y > 0 ? "+" : "") + ctx.parsed.y + "%" } },
+      },
+      scales: {
+        y: {
+          ticks: { callback: (v) => (v > 0 ? "+" : "") + v + "%" },
+        },
+      },
+    },
+  });
+
+  // 6. Total market value
+  const marketData = computeMarketValue();
+  new Chart(document.getElementById("chart-market-value"), {
+    type: "line",
+    data: {
+      labels: marketData.map((d) => d.year),
+      datasets: [{
+        label: "Total Market Value",
+        data: marketData.map((d) => d.total),
+        borderColor: "#8b5cf6",
+        backgroundColor: "rgba(139, 92, 246, 0.1)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: "#8b5cf6",
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => "\u00A3" + (ctx.parsed.y / 1e6).toFixed(1) + "m" } },
+      },
+      scales: {
+        y: {
+          ticks: { callback: (v) => "\u00A3" + (v / 1e6).toFixed(0) + "m" },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  // 7. Sales by month
+  const monthlyData = computeMonthlyStats();
+  const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  new Chart(document.getElementById("chart-monthly"), {
+    type: "bar",
+    data: {
+      labels: monthLabels,
+      datasets: [{
+        label: "Sales",
+        data: monthlyData,
+        backgroundColor: "rgba(37, 99, 235, 0.6)",
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } },
     },
   });
 }
