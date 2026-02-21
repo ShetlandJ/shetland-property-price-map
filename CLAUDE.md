@@ -15,14 +15,37 @@ Cache-busted via `?v=N` query params in index.html. Bump these when changing app
 
 ## Data
 
-`data.js` contains a `properties` array. Each entry:
+`data.js` contains a `properties` array. Each entry represents a single sale:
 ```js
-{ address: "14 HAYFIELD LANE, LERWICK, SHETLAND, ZE1 0QR", price: 125000, date: "2019-03-15", lat: 60.154, lng: -1.148 }
+{ lat: 60.154, lng: -1.148, price: 125000, address: "14 HAYFIELD LANE, LERWICK, SHETLAND, ZE1 0QR", date: "2019-03-15" }
 ```
 
-- Source: HM Land Registry / ScotLIS (see readme.md for API example)
+Entries with no numeric price have `price: null` and a `note` field:
+```js
+{ lat: 60.154, lng: -1.148, price: null, address: "...", date: "2023-03-30", note: "No price available" }
+```
+
+The same address can appear multiple times (one entry per sale). Job lot entries are flagged with `jobLot: true`.
+
+- Source: ScotLIS (Registers of Scotland) — see readme.md for API example
 - Coordinates are postcode-level (all properties sharing a postcode get the same lat/lng)
 - The `jitter()` function offsets overlapping markers in circles so they're all clickable — this is a known visual artefact, not real positions
+
+## Data Fetching
+
+`fetch_data.js` pulls data from the ScotLIS API for all valid ZE postcodes:
+
+```sh
+node fetch_data.js              # Start or resume fetching
+node fetch_data.js --export     # Export cached data to data.js
+node fetch_data.js --stats      # Show progress stats
+```
+
+- Rate limited: 18–23 second random delay between requests
+- Progress cached in `cache/` directory (resumable if interrupted)
+- Takes ~5 hours for all Shetland postcodes
+- Captures ALL titles per address (repeat sales, "No price available", "Love Favour and Affection", etc.)
+- The `cache/` directory is gitignored
 
 ## Key features
 
