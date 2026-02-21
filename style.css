@@ -312,10 +312,64 @@ html, body {
   margin-bottom: 20px;
 }
 
-.info-header h2 {
-  font-size: 22px;
-  font-weight: 700;
+/* Tab bar */
+.info-tabs {
+  display: flex;
+  gap: 0;
+}
+
+.info-tab {
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.info-tab:hover {
+  color: #333;
+}
+
+.info-tab.active {
   color: #1a1a1a;
+  border-bottom-color: #2563eb;
+}
+
+/* Tab content visibility */
+.info-tab-content {
+  display: none;
+}
+
+.info-tab-content.active {
+  display: block;
+}
+
+/* Chart containers */
+.chart-container {
+  position: relative;
+  margin-bottom: 32px;
+  max-width: 100%;
+}
+
+.chart-container canvas {
+  max-width: 100%;
+}
+
+#tab-reports h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  margin-top: 24px;
+}
+
+#tab-reports h3:first-child {
+  margin-top: 0;
 }
 
 .info-close-btn {

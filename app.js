@@ -278,23 +278,40 @@ infoOverlay.id = "info-overlay";
 infoOverlay.innerHTML = `
   <div class="info-overlay-inner">
     <div class="info-header">
-      <h2>About This Map</h2>
+      <div class="info-tabs">
+        <button class="info-tab active" data-tab="about">About</button>
+        <button class="info-tab" data-tab="reports">Reports</button>
+      </div>
       <button class="info-close-btn" aria-label="Close">&times;</button>
     </div>
-    <p class="info-description">
-      This map shows residential property sales in Shetland, sourced from
-      HM Land Registry Price Paid data. It covers transactions from 2002 to
-      the present. Each marker represents a sold property, coloured by sale
-      price. Use the year filter and search to explore the data.
-      Built by James Stewart (james@jastewart.co.uk).
-    </p>
-    <h3>Average Sale Price by Year</h3>
-    <table class="info-table">
-      <thead><tr><th>Year</th><th>Avg Price</th><th>Sales</th></tr></thead>
-      <tbody>
-        ${yearStats.map((s) => `<tr><td>${s.year}</td><td class="price-cell">${formatPrice(s.avg)}</td><td>${s.count}</td></tr>`).join("")}
-      </tbody>
-    </table>
+
+    <div class="info-tab-content active" id="tab-about">
+      <p class="info-description">
+        This map shows residential property sales in Shetland, sourced from
+        HM Land Registry Price Paid data. It covers transactions from 2002 to
+        the present. Each marker represents a sold property, coloured by sale
+        price. Use the year filter and search to explore the data.
+        Built by James Stewart (james@jastewart.co.uk).
+      </p>
+      <h3>Average Sale Price by Year</h3>
+      <table class="info-table">
+        <thead><tr><th>Year</th><th>Avg Price</th><th>Sales</th></tr></thead>
+        <tbody>
+          ${yearStats.map((s) => `<tr><td>${s.year}</td><td class="price-cell">${formatPrice(s.avg)}</td><td>${s.count}</td></tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="info-tab-content" id="tab-reports">
+      <h3>Average Sale Price Over Time</h3>
+      <div class="chart-container"><canvas id="chart-price-trend"></canvas></div>
+      <h3>Number of Sales per Year</h3>
+      <div class="chart-container"><canvas id="chart-volume"></canvas></div>
+      <h3>Sales by Price Band</h3>
+      <div class="chart-container"><canvas id="chart-distribution"></canvas></div>
+      <h3>Average Price by Area</h3>
+      <div class="chart-container"><canvas id="chart-area"></canvas></div>
+    </div>
   </div>
 `;
 document.body.appendChild(infoOverlay);
@@ -302,6 +319,168 @@ document.body.appendChild(infoOverlay);
 infoOverlay.querySelector(".info-close-btn").addEventListener("click", () => {
   infoOverlay.classList.remove("open");
 });
+
+// --- Tab switching ---
+const infoTabs = infoOverlay.querySelectorAll(".info-tab");
+const infoTabContents = infoOverlay.querySelectorAll(".info-tab-content");
+
+infoTabs.forEach((tab) => {
+  tab.addEventListener("click", () => {
+    infoTabs.forEach((t) => t.classList.remove("active"));
+    infoTabContents.forEach((c) => c.classList.remove("active"));
+    tab.classList.add("active");
+    document.getElementById("tab-" + tab.dataset.tab).classList.add("active");
+
+    if (tab.dataset.tab === "reports" && !chartsInitialized) {
+      initCharts();
+      chartsInitialized = true;
+    }
+  });
+});
+
+// --- Charts ---
+let chartsInitialized = false;
+
+function computePriceDistribution() {
+  const counts = PRICE_BANDS.map(() => 0);
+  properties.forEach((p) => {
+    const idx = PRICE_BANDS.findIndex((band) => p.price <= band.max);
+    if (idx !== -1) counts[idx]++;
+  });
+  return counts;
+}
+
+function computeAreaStats() {
+  const areas = {};
+  properties.forEach((p) => {
+    const parts = p.address.split(",").map((s) => s.trim());
+    const shetlandIdx = parts.findIndex((s) => s === "SHETLAND");
+    const area = shetlandIdx > 0 ? parts[shetlandIdx - 1] : parts[1] || "Unknown";
+    if (!areas[area]) areas[area] = [];
+    areas[area].push(p.price);
+  });
+
+  return Object.entries(areas)
+    .map(([name, prices]) => {
+      prices.sort((a, b) => a - b);
+      const median = prices[Math.floor(prices.length / 2)];
+      const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+      return { name, avg, median, count: prices.length };
+    })
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12);
+}
+
+function initCharts() {
+  Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+  Chart.defaults.color = "#555";
+
+  // 1. Price trend line chart
+  new Chart(document.getElementById("chart-price-trend"), {
+    type: "line",
+    data: {
+      labels: yearStats.map((s) => s.year),
+      datasets: [{
+        label: "Average Sale Price",
+        data: yearStats.map((s) => s.avg),
+        borderColor: "#2563eb",
+        backgroundColor: "rgba(37, 99, 235, 0.1)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 4,
+        pointBackgroundColor: "#2563eb",
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => formatPrice(ctx.parsed.y) } },
+      },
+      scales: {
+        y: {
+          ticks: { callback: (v) => "\u00A3" + (v / 1000) + "k" },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+
+  // 2. Volume bar chart
+  new Chart(document.getElementById("chart-volume"), {
+    type: "bar",
+    data: {
+      labels: yearStats.map((s) => s.year),
+      datasets: [{
+        label: "Number of Sales",
+        data: yearStats.map((s) => s.count),
+        backgroundColor: "rgba(37, 99, 235, 0.6)",
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true } },
+    },
+  });
+
+  // 3. Price distribution doughnut
+  const distCounts = computePriceDistribution();
+  new Chart(document.getElementById("chart-distribution"), {
+    type: "doughnut",
+    data: {
+      labels: PRICE_BANDS.map((b) => b.label),
+      datasets: [{
+        data: distCounts,
+        backgroundColor: PRICE_BANDS.map((b) => b.color),
+        borderWidth: 2,
+        borderColor: "#fff",
+      }],
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: "bottom" },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const total = distCounts.reduce((a, b) => a + b, 0);
+              const pct = ((ctx.parsed / total) * 100).toFixed(1);
+              return `${ctx.label}: ${ctx.parsed} sales (${pct}%)`;
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // 4. Area breakdown horizontal bar
+  const areaStats = computeAreaStats();
+  new Chart(document.getElementById("chart-area"), {
+    type: "bar",
+    data: {
+      labels: areaStats.map((a) => a.name),
+      datasets: [{
+        label: "Average Price",
+        data: areaStats.map((a) => a.avg),
+        backgroundColor: "rgba(37, 99, 235, 0.6)",
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: {
+          ticks: { callback: (v) => "\u00A3" + (v / 1000) + "k" },
+          beginAtZero: true,
+        },
+      },
+    },
+  });
+}
 
 // --- Legend ---
 const LegendControl = L.Control.extend({

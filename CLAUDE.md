@@ -46,4 +46,6 @@ Average prices for historical years (2002–2025) are hardcoded in `app.js` to a
 
 ## Deployment
 
-Pushed to `master` on GitHub: `ShetlandJ/shetland-property-price-map`. No CI — just static files.
+Pushed to `master` on GitHub: `ShetlandJ/shetland-property-price-map`. No CI — just static files served via GitHub Pages.
+
+**Keep it simple**: no build step, no node_modules, no bundlers. All code additions must work as plain static files. If a library is needed, load it via CDN — never introduce a build pipeline.
