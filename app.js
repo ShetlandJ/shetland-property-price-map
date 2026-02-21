@@ -29,13 +29,34 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
 }).addTo(map);
 
+// --- Jitter overlapping markers ---
+// Properties sharing a postcode have identical coords; offset them so all are visible
+const coordCounts = {};
+properties.forEach((p) => {
+  const key = `${p.lat},${p.lng}`;
+  coordCounts[key] = (coordCounts[key] || 0) + 1;
+});
+
+function jitter(lat, lng, index, total) {
+  if (total <= 1) return [lat, lng];
+  const angle = (2 * Math.PI * index) / total;
+  const radius = 0.0002 + 0.00005 * Math.floor(index / 8); // ~20m, expand in rings
+  return [lat + radius * Math.sin(angle), lng + radius * Math.cos(angle)];
+}
+
+const coordIndex = {};
+
 // --- Marker layer ---
 const markerLayer = L.layerGroup();
 
 properties.forEach((p) => {
+  const key = `${p.lat},${p.lng}`;
+  const idx = coordIndex[key] = (coordIndex[key] || 0);
+  coordIndex[key]++;
+  const [jLat, jLng] = jitter(p.lat, p.lng, idx, coordCounts[key]);
   const band = getPriceBand(p.price);
-  const marker = L.circleMarker([p.lat, p.lng], {
-    radius: 10,
+  const marker = L.circleMarker([jLat, jLng], {
+    radius: 6,
     fillColor: band.color,
     color: "#fff",
     weight: 2,
@@ -43,13 +64,14 @@ properties.forEach((p) => {
     fillOpacity: 0.85,
   });
 
+  const dateStr = p.date
+    ? new Date(p.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" })
+    : "";
+
   marker.bindPopup(`
     <div class="popup-price">${formatPrice(p.price)}</div>
     <div class="popup-address">${p.address}</div>
-    <div class="popup-details">
-      <span>${p.type}</span>
-      <span>${p.bedrooms} bed</span>
-    </div>
+    ${dateStr ? `<div class="popup-details"><span>Sold ${dateStr}</span></div>` : ""}
   `);
 
   markerLayer.addLayer(marker);
@@ -58,7 +80,7 @@ properties.forEach((p) => {
 markerLayer.addTo(map);
 
 // --- Heatmap layer ---
-const maxPrice = Math.max(...properties.map((p) => p.price));
+const maxPrice = properties.reduce((max, p) => Math.max(max, p.price), 0);
 const heatData = properties.map((p) => [p.lat, p.lng, p.price / maxPrice]);
 
 const heatLayer = L.heatLayer(heatData, {
