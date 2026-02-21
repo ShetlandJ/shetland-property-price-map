@@ -356,6 +356,10 @@ function doSearch() {
 
 // --- Mobile bottom sheet for year filter ---
 if (window.matchMedia('(max-width: 600px)').matches) {
+  // Hide the Leaflet year filter control directly via JS
+  const leafletYearControl = document.querySelector('.year-filter-control');
+  if (leafletYearControl) leafletYearControl.style.display = 'none';
+
   // Trigger button
   const trigger = document.createElement('button');
   trigger.id = 'year-filter-trigger';
