@@ -184,3 +184,64 @@ html, body {
   padding: 2px 8px;
   border-radius: 4px;
 }
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .search-control {
+    width: calc(100vw - 80px);
+  }
+
+  .toggle-control {
+    padding: 8px 12px;
+    min-width: auto;
+  }
+
+  .toggle-control h3,
+  .legend-control h3 {
+    font-size: 11px;
+    margin-bottom: 4px;
+  }
+
+  .toggle-control label {
+    font-size: 12px;
+    padding: 2px 0;
+    gap: 6px;
+  }
+
+  .toggle-control input[type="checkbox"] {
+    width: 14px;
+    height: 14px;
+  }
+
+  .legend-control {
+    padding: 8px 12px;
+  }
+
+  .legend-item {
+    font-size: 11px;
+    padding: 2px 0;
+    gap: 6px;
+  }
+
+  .legend-color {
+    width: 14px;
+    height: 14px;
+  }
+
+  #search-input {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  #search-results {
+    max-height: 250px;
+  }
+
+  .popup-price {
+    font-size: 17px;
+  }
+
+  .popup-address {
+    font-size: 13px;
+  }
+}
