@@ -71,7 +71,7 @@ properties.forEach((p, i) => {
     : "";
 
   marker.bindPopup(`
-    <div class="popup-price">${formatPrice(p.price)}</div>
+    <div class="popup-price">${formatPrice(p.price)}${p.jobLot ? '<span class="popup-job-lot">Possible job lot</span>' : ""}</div>
     <div class="popup-address">${p.address}</div>
     ${dateStr ? `<div class="popup-details"><span>Sold ${dateStr}</span></div>` : ""}
   `);
@@ -427,11 +427,14 @@ function buildSummaryCards() {
   const first = yearStats[0];
   const overallChange = ((latest.avg - first.avg) / first.avg * 100).toFixed(0);
 
+  const jobLotCount = properties.filter((p) => p.jobLot).length;
+
   const cards = [
     { label: "Total Sales", value: totalSales.toLocaleString("en-GB") },
     { label: "Total Value", value: "£" + (totalValue / 1e6).toFixed(1) + "m" },
     { label: "Median Price", value: formatPrice(median) },
     { label: "Price Change", value: (overallChange > 0 ? "+" : "") + overallChange + "%", sub: `${first.year}–${latest.year}` },
+    { label: "Possible Job Lots", value: jobLotCount, sub: "same price & date" },
   ];
 
   document.getElementById("report-summary-cards").innerHTML = cards.map((c) =>

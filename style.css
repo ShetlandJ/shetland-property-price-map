@@ -518,6 +518,19 @@ html, body {
   margin-bottom: 8px;
 }
 
+.popup-job-lot {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+
 .popup-details {
   display: flex;
   gap: 12px;
