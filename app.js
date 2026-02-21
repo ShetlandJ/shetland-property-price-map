@@ -286,6 +286,7 @@ infoOverlay.innerHTML = `
       HM Land Registry Price Paid data. It covers transactions from 2002 to
       the present. Each marker represents a sold property, coloured by sale
       price. Use the year filter and search to explore the data.
+      Built by James Stewart (james@jastewart.co.uk).
     </p>
     <h3>Average Sale Price by Year</h3>
     <table class="info-table">
