@@ -380,8 +380,9 @@ html, body {
     font-size: 13px;
   }
 
-  /* Hide desktop year filter on mobile */
-  .year-filter-control {
+  /* Hide desktop year filter and legend on mobile */
+  .year-filter-control,
+  .legend-control {
     display: none !important;
   }
 
@@ -562,5 +563,43 @@ html, body {
     justify-content: space-between;
     font-size: 13px;
     color: #aaa;
+  }
+
+  /* Legend inside bottom sheet */
+  #year-sheet .sheet-legend {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #eee;
+  }
+
+  #year-sheet .sheet-legend h3 {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+
+  #year-sheet .sheet-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+
+  #year-sheet .sheet-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #555;
+  }
+
+  #year-sheet .sheet-legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
   }
 }

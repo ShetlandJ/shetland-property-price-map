@@ -356,9 +356,11 @@ function doSearch() {
 
 // --- Mobile bottom sheet for year filter ---
 if (window.matchMedia('(max-width: 600px)').matches) {
-  // Hide the Leaflet year filter control directly via JS
+  // Hide the Leaflet year filter and legend controls directly via JS
   const leafletYearControl = document.querySelector('.year-filter-control');
   if (leafletYearControl) leafletYearControl.style.display = 'none';
+  const leafletLegendControl = document.querySelector('.legend-control');
+  if (leafletLegendControl) leafletLegendControl.style.display = 'none';
 
   // Trigger button
   const trigger = document.createElement('button');
@@ -390,6 +392,12 @@ if (window.matchMedia('(max-width: 600px)').matches) {
     <div class="sheet-ticks">
       <span>${yearMin}</span>
       <span>${yearMax}</span>
+    </div>
+    <div class="sheet-legend">
+      <h3>Price</h3>
+      <div class="sheet-legend-items">
+        ${PRICE_BANDS.map(band => `<div class="sheet-legend-item"><span class="sheet-legend-color" style="background:${band.color}"></span>${band.label}</div>`).join('')}
+      </div>
     </div>
   `;
   document.body.appendChild(sheet);
