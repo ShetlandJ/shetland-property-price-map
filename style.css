@@ -257,6 +257,142 @@ html, body {
   margin-top: 2px;
 }
 
+/* Info button */
+.info-button-control {
+  margin-bottom: 0 !important;
+}
+
+.info-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 18px;
+  font-weight: 700;
+  color: #555;
+  cursor: pointer;
+  line-height: 32px;
+  text-align: center;
+  padding: 0;
+}
+
+.info-btn:hover {
+  color: #111;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Info overlay */
+#info-overlay {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  z-index: 2000;
+  overflow-y: auto;
+  display: none;
+}
+
+#info-overlay.open {
+  display: block;
+}
+
+.info-overlay-inner {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+
+.info-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.info-header h2 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.info-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: #f1f5f9;
+  font-size: 22px;
+  color: #555;
+  cursor: pointer;
+  line-height: 36px;
+  text-align: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.info-close-btn:hover {
+  background: #e2e8f0;
+  color: #111;
+}
+
+.info-description {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #444;
+  margin-bottom: 28px;
+}
+
+.info-overlay-inner h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.info-table thead th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.info-table thead th:last-child,
+.info-table td.price-cell,
+.info-table td:last-child {
+  text-align: right;
+}
+
+.info-table tbody tr {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.info-table td {
+  padding: 8px 12px;
+  color: #333;
+}
+
+.info-table td.price-cell {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Popup styling */
 .leaflet-popup-content-wrapper {
   border-radius: 8px;
@@ -377,6 +513,15 @@ html, body {
   }
 
   .popup-address {
+    font-size: 13px;
+  }
+
+  /* Info overlay mobile tweaks */
+  .info-overlay-inner {
+    padding: 24px 16px 40px;
+  }
+
+  .info-table {
     font-size: 13px;
   }
 

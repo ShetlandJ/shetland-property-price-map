@@ -215,6 +215,93 @@ function applyYearFilter() {
 yearMinInput.addEventListener("input", applyYearFilter);
 yearMaxInput.addEventListener("input", applyYearFilter);
 
+// --- Average price per year ---
+// Historical years are hardcoded since the data won't change.
+// Only the current year is computed live.
+const yearStats = [
+  { year: 2002, avg: 17667, count: 3 },
+  { year: 2003, avg: 53318, count: 73 },
+  { year: 2004, avg: 86314, count: 117 },
+  { year: 2005, avg: 70755, count: 107 },
+  { year: 2006, avg: 89059, count: 160 },
+  { year: 2007, avg: 108139, count: 128 },
+  { year: 2008, avg: 124249, count: 142 },
+  { year: 2009, avg: 99662, count: 93 },
+  { year: 2010, avg: 120508, count: 122 },
+  { year: 2011, avg: 120962, count: 128 },
+  { year: 2012, avg: 130711, count: 133 },
+  { year: 2013, avg: 116206, count: 171 },
+  { year: 2014, avg: 130055, count: 194 },
+  { year: 2015, avg: 151435, count: 193 },
+  { year: 2016, avg: 140430, count: 208 },
+  { year: 2017, avg: 149293, count: 237 },
+  { year: 2018, avg: 155964, count: 230 },
+  { year: 2019, avg: 151556, count: 229 },
+  { year: 2020, avg: 158903, count: 205 },
+  { year: 2021, avg: 163455, count: 250 },
+  { year: 2022, avg: 178753, count: 264 },
+  { year: 2023, avg: 182016, count: 221 },
+  { year: 2024, avg: 192248, count: 254 },
+  { year: 2025, avg: 194161, count: 260 },
+];
+
+// Compute current year live (partial data)
+const currentYear = new Date().getFullYear();
+let cyTotal = 0, cyCount = 0;
+properties.forEach((p) => {
+  if (getPropertyYear(p) === currentYear) { cyTotal += p.price; cyCount++; }
+});
+if (cyCount > 0) {
+  yearStats.push({ year: currentYear, avg: Math.round(cyTotal / cyCount), count: cyCount });
+}
+
+// --- Info button + overlay ---
+const InfoControl = L.Control.extend({
+  options: { position: "topright" },
+
+  onAdd() {
+    const container = L.DomUtil.create("div", "info-button-control");
+    container.innerHTML = '<button class="info-btn" aria-label="About this map">i</button>';
+    L.DomEvent.disableClickPropagation(container);
+    container.querySelector(".info-btn").addEventListener("click", () => {
+      document.getElementById("info-overlay").classList.add("open");
+    });
+    return container;
+  },
+});
+
+new InfoControl().addTo(map);
+
+// Build overlay DOM
+const infoOverlay = document.createElement("div");
+infoOverlay.id = "info-overlay";
+infoOverlay.innerHTML = `
+  <div class="info-overlay-inner">
+    <div class="info-header">
+      <h2>About This Map</h2>
+      <button class="info-close-btn" aria-label="Close">&times;</button>
+    </div>
+    <p class="info-description">
+      This map shows residential property sales in Shetland, sourced from
+      HM Land Registry Price Paid data. It covers transactions from 2002 to
+      the present. Each marker represents a sold property, coloured by sale
+      price. Use the year filter and search to explore the data.
+    </p>
+    <h3>Average Sale Price by Year</h3>
+    <table class="info-table">
+      <thead><tr><th>Year</th><th>Avg Price</th><th>Sales</th></tr></thead>
+      <tbody>
+        ${yearStats.map((s) => `<tr><td>${s.year}</td><td class="price-cell">${formatPrice(s.avg)}</td><td>${s.count}</td></tr>`).join("")}
+      </tbody>
+    </table>
+  </div>
+`;
+document.body.appendChild(infoOverlay);
+
+infoOverlay.querySelector(".info-close-btn").addEventListener("click", () => {
+  infoOverlay.classList.remove("open");
+});
+
 // --- Legend ---
 const LegendControl = L.Control.extend({
   options: { position: "bottomright" },
