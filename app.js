@@ -48,8 +48,9 @@ const coordIndex = {};
 
 // --- Marker layer ---
 const markerLayer = L.layerGroup();
+const propertyMarkers = []; // parallel array: propertyMarkers[i] corresponds to properties[i]
 
-properties.forEach((p) => {
+properties.forEach((p, i) => {
   const key = `${p.lat},${p.lng}`;
   const idx = coordIndex[key] = (coordIndex[key] || 0);
   coordIndex[key]++;
@@ -63,6 +64,7 @@ properties.forEach((p) => {
     opacity: 1,
     fillOpacity: 0.85,
   });
+  marker._origStyle = { fillColor: band.color, color: "#fff", weight: 2, radius: 6 };
 
   const dateStr = p.date
     ? new Date(p.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" })
@@ -75,6 +77,7 @@ properties.forEach((p) => {
   `);
 
   markerLayer.addLayer(marker);
+  propertyMarkers[i] = marker;
 });
 
 markerLayer.addTo(map);
@@ -155,3 +158,116 @@ const LegendControl = L.Control.extend({
 });
 
 new LegendControl().addTo(map);
+
+// --- Search ---
+const SearchControl = L.Control.extend({
+  options: { position: "topleft" },
+
+  onAdd() {
+    const container = L.DomUtil.create("div", "search-control");
+    container.innerHTML = `
+      <input type="text" id="search-input" placeholder="Search address or postcode..." />
+      <div id="search-results"></div>
+    `;
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+    return container;
+  },
+});
+
+new SearchControl().addTo(map);
+
+const searchInput = document.getElementById("search-input");
+const searchResults = document.getElementById("search-results");
+let highlightedMarkers = [];
+
+function clearHighlights() {
+  highlightedMarkers.forEach((m) => {
+    m.setStyle({ fillColor: m._origStyle.fillColor, color: m._origStyle.color, weight: m._origStyle.weight });
+    m.setRadius(m._origStyle.radius);
+  });
+  highlightedMarkers = [];
+}
+
+function highlightMarker(marker) {
+  marker.setStyle({ fillColor: "#2563eb", color: "#fff", weight: 3 });
+  marker.setRadius(10);
+  highlightedMarkers.push(marker);
+}
+
+function goToResult(index) {
+  clearHighlights();
+  const marker = propertyMarkers[index];
+  const latlng = marker.getLatLng();
+  map.setView(latlng, 17);
+  highlightMarker(marker);
+  marker.openPopup();
+  searchResults.style.display = "none";
+}
+
+let searchTimeout;
+searchInput.addEventListener("input", () => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(doSearch, 200);
+});
+
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    searchInput.value = "";
+    searchResults.style.display = "none";
+    clearHighlights();
+  }
+});
+
+function normalize(str) {
+  return str.toLowerCase().replace(/[.,]/g, "");
+}
+
+function doSearch() {
+  const query = normalize(searchInput.value.trim());
+  searchResults.style.display = "none";
+  clearHighlights();
+
+  if (query.length < 3) return;
+
+  const matches = [];
+  properties.forEach((p, i) => {
+    if (normalize(p.address).includes(query)) {
+      matches.push(i);
+    }
+  });
+
+  if (matches.length === 0) {
+    searchResults.innerHTML = '<div class="search-empty">No results found</div>';
+    searchResults.style.display = "block";
+    return;
+  }
+
+  if (matches.length === 1) {
+    goToResult(matches[0]);
+    return;
+  }
+
+  // Multiple results — show list (cap at 50)
+  const shown = matches.slice(0, 50);
+  searchResults.innerHTML = shown.map((i) => {
+    const p = properties[i];
+    const dateStr = p.date ? new Date(p.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" }) : "";
+    return `<div class="search-item" data-index="${i}">
+      <span class="search-item-address">${p.address}</span>
+      <span class="search-item-meta">${formatPrice(p.price)}${dateStr ? " &middot; " + dateStr : ""}</span>
+    </div>`;
+  }).join("");
+
+  if (matches.length > 50) {
+    searchResults.innerHTML += `<div class="search-empty">${matches.length - 50} more results...</div>`;
+  }
+
+  searchResults.style.display = "block";
+
+  searchResults.querySelectorAll(".search-item").forEach((el) => {
+    el.addEventListener("click", () => {
+      goToResult(parseInt(el.dataset.index));
+    });
+  });
+}
