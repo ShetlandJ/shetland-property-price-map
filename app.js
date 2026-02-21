@@ -123,6 +123,7 @@ new ToggleControl().addTo(map);
 document.getElementById("toggle-markers").addEventListener("change", (e) => {
   if (e.target.checked) {
     map.addLayer(markerLayer);
+    applyYearFilter(); // re-apply so only in-range markers show
   } else {
     map.removeLayer(markerLayer);
   }
@@ -135,6 +136,84 @@ document.getElementById("toggle-heatmap").addEventListener("change", (e) => {
     map.removeLayer(heatLayer);
   }
 });
+
+// --- Year filter ---
+const yearMin = 2002;
+const yearMax = new Date().getFullYear();
+
+const YearFilterControl = L.Control.extend({
+  options: { position: "bottomleft" },
+
+  onAdd() {
+    const container = L.DomUtil.create("div", "year-filter-control");
+    container.innerHTML = `
+      <h3>Year Range</h3>
+      <div class="year-slider-label">
+        <span id="year-label">${yearMin} – ${yearMax}</span>
+        <span id="year-count">${properties.length} properties</span>
+      </div>
+      <div class="year-slider-wrap">
+        <input type="range" id="year-min" min="${yearMin}" max="${yearMax}" value="${yearMin}" step="1" />
+        <input type="range" id="year-max" min="${yearMin}" max="${yearMax}" value="${yearMax}" step="1" />
+      </div>
+      <div class="year-slider-ticks">
+        <span>${yearMin}</span>
+        <span>${yearMax}</span>
+      </div>
+    `;
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+    return container;
+  },
+});
+
+new YearFilterControl().addTo(map);
+
+const yearMinInput = document.getElementById("year-min");
+const yearMaxInput = document.getElementById("year-max");
+const yearLabel = document.getElementById("year-label");
+const yearCount = document.getElementById("year-count");
+
+function getPropertyYear(p) {
+  if (!p.date) return null;
+  return new Date(p.date).getFullYear();
+}
+
+function applyYearFilter() {
+  let lo = parseInt(yearMinInput.value);
+  let hi = parseInt(yearMaxInput.value);
+
+  // Prevent handles from crossing
+  if (lo > hi) {
+    lo = hi;
+    yearMinInput.value = lo;
+  }
+
+  yearLabel.textContent = `${lo} – ${hi}`;
+
+  const filteredHeatData = [];
+  let visibleCount = 0;
+
+  properties.forEach((p, i) => {
+    const year = getPropertyYear(p);
+    const inRange = year !== null && year >= lo && year <= hi;
+    const marker = propertyMarkers[i];
+
+    if (inRange) {
+      if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
+      filteredHeatData.push([p.lat, p.lng, p.price / maxPrice]);
+      visibleCount++;
+    } else {
+      if (markerLayer.hasLayer(marker)) markerLayer.removeLayer(marker);
+    }
+  });
+
+  yearCount.textContent = `${visibleCount} propert${visibleCount === 1 ? "y" : "ies"}`;
+  heatLayer.setLatLngs(filteredHeatData);
+}
+
+yearMinInput.addEventListener("input", applyYearFilter);
+yearMaxInput.addEventListener("input", applyYearFilter);
 
 // --- Legend ---
 const LegendControl = L.Control.extend({
@@ -198,6 +277,9 @@ function highlightMarker(marker) {
 function goToResult(index) {
   clearHighlights();
   const marker = propertyMarkers[index];
+  // Ensure marker is visible even if outside year filter
+  if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
+  if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
   const latlng = marker.getLatLng();
   map.setView(latlng, 17);
   highlightMarker(marker);
