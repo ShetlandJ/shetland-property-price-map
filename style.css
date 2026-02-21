@@ -379,4 +379,188 @@ html, body {
   .popup-address {
     font-size: 13px;
   }
+
+  /* Hide desktop year filter on mobile */
+  .year-filter-control {
+    display: none !important;
+  }
+
+  /* Trigger button */
+  #year-filter-trigger {
+    position: fixed;
+    bottom: 16px;
+    left: 10px;
+    z-index: 1000;
+    background: white;
+    border: none;
+    border-radius: 24px;
+    padding: 10px 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+
+  #year-filter-trigger .chevron {
+    font-size: 12px;
+    color: #888;
+    transition: transform 0.2s;
+  }
+
+  /* Backdrop */
+  #year-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+
+  #year-sheet-backdrop.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Bottom sheet */
+  #year-sheet {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1200;
+    background: white;
+    border-radius: 16px 16px 0 0;
+    padding: 16px 20px 28px;
+    box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.15);
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+  }
+
+  #year-sheet.open {
+    transform: translateY(0);
+  }
+
+  #year-sheet .sheet-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+
+  #year-sheet .sheet-header h3 {
+    font-size: 17px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
+  #year-sheet .sheet-done-btn {
+    background: none;
+    border: none;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2563eb;
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+
+  #year-sheet .sheet-label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 16px;
+  }
+
+  #year-sheet #sheet-year-label {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
+  #year-sheet #sheet-year-count {
+    font-size: 14px;
+    color: #888;
+  }
+
+  /* Large slider styling inside sheet */
+  #year-sheet .sheet-slider-wrap {
+    position: relative;
+    height: 40px;
+    margin-bottom: 8px;
+  }
+
+  #year-sheet .sheet-slider-wrap input[type="range"] {
+    position: absolute;
+    width: 100%;
+    top: 0;
+    left: 0;
+    margin: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: none;
+    background: transparent;
+    height: 40px;
+  }
+
+  #year-sheet .sheet-slider-wrap input[type="range"]::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: transparent;
+  }
+
+  #year-sheet .sheet-slider-wrap input[type="range"]#sheet-year-min::-webkit-slider-runnable-track {
+    background: #e2e8f0;
+  }
+
+  #year-sheet .sheet-slider-wrap input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #2563eb;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    pointer-events: auto;
+    margin-top: -11px;
+    position: relative;
+    z-index: 2;
+  }
+
+  #year-sheet .sheet-slider-wrap input[type="range"]::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: transparent;
+    border: none;
+  }
+
+  #year-sheet .sheet-slider-wrap input[type="range"]#sheet-year-min::-moz-range-track {
+    background: #e2e8f0;
+  }
+
+  #year-sheet .sheet-slider-wrap input[type="range"]::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #2563eb;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+
+  #year-sheet .sheet-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #aaa;
+  }
 }

@@ -353,3 +353,91 @@ function doSearch() {
     });
   });
 }
+
+// --- Mobile bottom sheet for year filter ---
+if (window.matchMedia('(max-width: 600px)').matches) {
+  // Trigger button
+  const trigger = document.createElement('button');
+  trigger.id = 'year-filter-trigger';
+  trigger.innerHTML = `<span id="trigger-text">${yearMin} – ${yearMax} | ${properties.length}</span><span class="chevron">&#9650;</span>`;
+  document.body.appendChild(trigger);
+
+  // Backdrop
+  const backdrop = document.createElement('div');
+  backdrop.id = 'year-sheet-backdrop';
+  document.body.appendChild(backdrop);
+
+  // Bottom sheet
+  const sheet = document.createElement('div');
+  sheet.id = 'year-sheet';
+  sheet.innerHTML = `
+    <div class="sheet-header">
+      <h3>Year Range</h3>
+      <button class="sheet-done-btn">Done</button>
+    </div>
+    <div class="sheet-label-row">
+      <span id="sheet-year-label">${yearMin} – ${yearMax}</span>
+      <span id="sheet-year-count">${properties.length} properties</span>
+    </div>
+    <div class="sheet-slider-wrap">
+      <input type="range" id="sheet-year-min" min="${yearMin}" max="${yearMax}" value="${yearMinInput.value}" step="1" />
+      <input type="range" id="sheet-year-max" min="${yearMin}" max="${yearMax}" value="${yearMaxInput.value}" step="1" />
+    </div>
+    <div class="sheet-ticks">
+      <span>${yearMin}</span>
+      <span>${yearMax}</span>
+    </div>
+  `;
+  document.body.appendChild(sheet);
+
+  const sheetMinInput = document.getElementById('sheet-year-min');
+  const sheetMaxInput = document.getElementById('sheet-year-max');
+  const sheetLabel = document.getElementById('sheet-year-label');
+  const sheetCount = document.getElementById('sheet-year-count');
+  const triggerText = document.getElementById('trigger-text');
+  const doneBtn = sheet.querySelector('.sheet-done-btn');
+
+  function openSheet() {
+    sheet.classList.add('open');
+    backdrop.classList.add('open');
+  }
+
+  function closeSheet() {
+    sheet.classList.remove('open');
+    backdrop.classList.remove('open');
+  }
+
+  trigger.addEventListener('click', openSheet);
+  backdrop.addEventListener('click', closeSheet);
+  doneBtn.addEventListener('click', closeSheet);
+
+  function syncSheetToFilter() {
+    // Copy sheet values to the hidden Leaflet inputs
+    yearMinInput.value = sheetMinInput.value;
+    yearMaxInput.value = sheetMaxInput.value;
+    applyYearFilter();
+
+    // Update sheet labels
+    const lo = yearMinInput.value;
+    const hi = yearMaxInput.value;
+    sheetLabel.textContent = `${lo} – ${hi}`;
+    sheetCount.textContent = yearCount.textContent;
+    triggerText.textContent = `${lo} – ${hi} | ${yearCount.textContent.split(' ')[0]}`;
+  }
+
+  sheetMinInput.addEventListener('input', syncSheetToFilter);
+  sheetMaxInput.addEventListener('input', syncSheetToFilter);
+
+  // Also patch applyYearFilter so trigger stays in sync when called externally
+  const _origApply = applyYearFilter;
+  applyYearFilter = function () {
+    _origApply();
+    const lo = yearMinInput.value;
+    const hi = yearMaxInput.value;
+    sheetMinInput.value = lo;
+    sheetMaxInput.value = hi;
+    sheetLabel.textContent = `${lo} – ${hi}`;
+    sheetCount.textContent = yearCount.textContent;
+    triggerText.textContent = `${lo} – ${hi} | ${yearCount.textContent.split(' ')[0]}`;
+  };
+}
