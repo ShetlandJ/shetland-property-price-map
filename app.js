@@ -40,7 +40,10 @@ properties.forEach((p) => {
 properties.forEach((p) => {
   if (p.price == null) return;
   const key = `${p.date}|${p.price}|${p.lat},${p.lng}`;
-  if (datePricePostcodeBuckets.get(key).size > 1) p.jobLot = true;
+  if (datePricePostcodeBuckets.get(key).size > 1) {
+    p.jobLot = true;
+    p._jobLotKey = key;
+  }
 });
 
 // --- Group properties by address ---
@@ -68,6 +71,21 @@ function getLatestPricedSale(sales) {
 const reportSales = groups
   .map((g) => g.sales.find((s) => s.price != null && !s.jobLot))
   .filter((s) => s != null);
+
+// Address to group index lookup (for job lot links)
+const addressToGroupIndex = {};
+groups.forEach((g, i) => { addressToGroupIndex[g.sales[0].address] = i; });
+
+// Global function for job lot popup links
+window.goToJobLotAddress = function (address) {
+  const gi = addressToGroupIndex[address];
+  if (gi == null) return;
+  const marker = groupMarkers[gi];
+  if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
+  if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
+  map.setView(marker.getLatLng(), 17);
+  marker.openPopup();
+};
 
 // --- Jitter overlapping markers ---
 // Addresses sharing a postcode have identical coords; offset them so all are visible
@@ -128,6 +146,22 @@ groups.forEach((group, i) => {
     </div>`;
   });
   popupHtml += "</div>";
+
+  // Show linked job lot properties
+  const jobLotSale = group.sales.find((s) => s._jobLotKey);
+  if (jobLotSale) {
+    const linked = [...datePricePostcodeBuckets.get(jobLotSale._jobLotKey)]
+      .filter((addr) => addr !== group.sales[0].address)
+      .sort();
+    if (linked.length > 0) {
+      popupHtml += `<div class="popup-job-lot-group">`;
+      popupHtml += `<div class="popup-job-lot-header">Job lot with ${linked.length} other propert${linked.length === 1 ? "y" : "ies"}</div>`;
+      popupHtml += linked.map((addr) =>
+        `<a class="popup-job-lot-link" href="#" onclick="event.preventDefault();goToJobLotAddress('${addr.replace(/'/g, "\\'")}')">${addr}</a>`
+      ).join("");
+      popupHtml += `</div>`;
+    }
+  }
 
   marker.bindPopup(popupHtml, { maxWidth: 280, minWidth: 200 });
 
