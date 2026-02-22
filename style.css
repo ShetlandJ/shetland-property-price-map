@@ -663,6 +663,48 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Area summary card */
+.area-summary-control {
+  background: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  min-width: 160px;
+}
+
+.area-summary-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.area-summary-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.area-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.area-summary-key {
+  color: #888;
+}
+
+.area-summary-val {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+}
+
 /* Popup styling */
 .leaflet-popup-content-wrapper {
   border-radius: 8px;
@@ -857,9 +899,10 @@ html, body {
     font-size: 13px;
   }
 
-  /* Hide desktop year filter and legend on mobile */
+  /* Hide desktop year filter, legend, and area summary on mobile */
   .year-filter-control,
-  .legend-control {
+  .legend-control,
+  .area-summary-control {
     display: none !important;
   }
 

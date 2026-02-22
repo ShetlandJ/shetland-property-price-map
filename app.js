@@ -68,6 +68,42 @@ addressGroups.forEach((group) => {
 
 const groups = Array.from(addressGroups.values());
 
+// --- Area normalization ---
+const AREA_NORMALIZE = {
+  "G0TT": "GOTT",
+  "GULBERICK": "GULBERWICK",
+  "GERMISTA": "GREMISTA",
+  "BALTASOUND UNST": "UNST",
+  "EAST VOE SCALLOWAY": "SCALLOWAY",
+  "HAMNAVOE BURRA": "BURRA",
+  "BRIDGE END BURRA": "BURRA",
+  "PAPIL BURRA": "BURRA",
+  "WEST BURRAFIRTH": "BURRAFIRTH",
+  "NORTH ROE": "NORTHROE",
+  "MID YELL": "YELL",
+  "WEST YELL": "YELL",
+  "NORTH YELL": "YELL",
+  "EAST YELL": "YELL",
+};
+
+function getArea(address) {
+  const parts = address.split(",").map((s) => s.trim());
+  const shetlandIdx = parts.findIndex((s) => s === "SHETLAND");
+  let area = shetlandIdx > 0 ? parts[shetlandIdx - 1] : null;
+
+  if (!area) {
+    // Fallback: ZE1 postcodes without "SHETLAND" are typically Lerwick
+    const postcode = parts[parts.length - 1];
+    if (postcode && postcode.startsWith("ZE1")) return "LERWICK";
+    area = parts[1] || "Unknown";
+  }
+
+  return AREA_NORMALIZE[area] || area;
+}
+
+// Tag each group with its normalized area
+groups.forEach((g) => { g.area = getArea(g.sales[0].address); });
+
 // Helper: most recent sale with a valid price
 function getLatestPricedSale(sales) {
   return sales.find((s) => s.price != null) || sales[0];
@@ -511,9 +547,7 @@ function computePriceDistribution() {
 function computeAreaStats() {
   const areas = {};
   reportSales.forEach((p) => {
-    const parts = p.address.split(",").map((s) => s.trim());
-    const shetlandIdx = parts.findIndex((s) => s === "SHETLAND");
-    const area = shetlandIdx > 0 ? parts[shetlandIdx - 1] : parts[1] || "Unknown";
+    const area = getArea(p.address);
     if (!areas[area]) areas[area] = [];
     areas[area].push(p.price);
   });
@@ -998,6 +1032,100 @@ function doSearch() {
     });
   });
 }
+
+// --- Area summary card on zoom ---
+const AreaSummaryControl = L.Control.extend({
+  options: { position: "bottomright" },
+
+  onAdd() {
+    const container = L.DomUtil.create("div", "area-summary-control");
+    container.style.display = "none";
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.disableScrollPropagation(container);
+    return container;
+  },
+});
+
+const areaSummaryControl = new AreaSummaryControl();
+areaSummaryControl.addTo(map);
+const areaSummaryEl = areaSummaryControl.getContainer();
+
+let areaSummaryTimeout;
+function updateAreaSummary() {
+  clearTimeout(areaSummaryTimeout);
+  areaSummaryTimeout = setTimeout(() => {
+    if (map.getZoom() < 13) {
+      areaSummaryEl.style.display = "none";
+      return;
+    }
+
+    const bounds = map.getBounds();
+    const areaCounts = {};
+    const areaGroups = {};
+
+    groups.forEach((g) => {
+      if (!bounds.contains([g.lat, g.lng])) return;
+      const area = g.area;
+      areaCounts[area] = (areaCounts[area] || 0) + 1;
+      if (!areaGroups[area]) areaGroups[area] = [];
+      areaGroups[area].push(g);
+    });
+
+    const areas = Object.entries(areaCounts).sort((a, b) => b[1] - a[1]);
+    if (areas.length === 0) {
+      areaSummaryEl.style.display = "none";
+      return;
+    }
+
+    // Use dominant area if it has clear majority, otherwise show "Mixed Areas"
+    const [topArea, topCount] = areas[0];
+    const totalVisible = areas.reduce((s, a) => s + a[1], 0);
+    const dominantArea = topCount / totalVisible >= 0.5 ? topArea : null;
+
+    if (!dominantArea) {
+      areaSummaryEl.style.display = "none";
+      return;
+    }
+
+    // Compute stats from visible groups in the dominant area
+    const visibleGroups = areaGroups[dominantArea];
+    const prices = [];
+    let saleCount = 0;
+
+    visibleGroups.forEach((g) => {
+      const sale = g.sales.find((s) => s.price != null && !s.jobLot);
+      if (sale) {
+        prices.push(sale.price);
+        saleCount++;
+      }
+    });
+
+    if (prices.length === 0) {
+      areaSummaryEl.style.display = "none";
+      return;
+    }
+
+    prices.sort((a, b) => a - b);
+    const median = prices[Math.floor(prices.length / 2)];
+    const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+    const min = prices[0];
+    const max = prices[prices.length - 1];
+
+    areaSummaryEl.innerHTML = `
+      <div class="area-summary-name">${dominantArea}</div>
+      <div class="area-summary-stats">
+        <div class="area-summary-row"><span class="area-summary-key">Properties</span><span class="area-summary-val">${saleCount}</span></div>
+        <div class="area-summary-row"><span class="area-summary-key">Avg price</span><span class="area-summary-val">${formatShortPrice(avg)}</span></div>
+        <div class="area-summary-row"><span class="area-summary-key">Median</span><span class="area-summary-val">${formatShortPrice(median)}</span></div>
+        <div class="area-summary-row"><span class="area-summary-key">Range</span><span class="area-summary-val">${formatShortPrice(min)} – ${formatShortPrice(max)}</span></div>
+      </div>
+    `;
+    areaSummaryEl.style.display = "block";
+  }, 200);
+}
+
+map.on("moveend", updateAreaSummary);
+map.on("zoomend", updateAreaSummary);
 
 // --- Mobile bottom sheet for year filter ---
 if (window.matchMedia('(max-width: 600px)').matches) {
