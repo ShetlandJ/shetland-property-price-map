@@ -426,6 +426,14 @@ infoOverlay.innerHTML = `
         <thead><tr><th>Address</th><th>Price</th><th>Date</th></tr></thead>
         <tbody></tbody>
       </table>
+
+      <h3>Job Lot Sales</h3>
+      <p class="report-description">Bulk purchases where multiple properties at the same postcode sold for the same price on the same date.</p>
+      <div id="job-lot-summary-cards" class="report-summary-cards"></div>
+      <table class="info-table" id="job-lot-table">
+        <thead><tr><th>Location</th><th>Properties</th><th>Price Each</th><th>Total</th><th>Date</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 `;
@@ -546,12 +554,68 @@ function buildTopSalesTable() {
   }).join("");
 }
 
+function buildJobLotReport() {
+  // Build job lot groups from the detection buckets
+  const jobLots = [];
+  datePricePostcodeBuckets.forEach((addresses, key) => {
+    if (addresses.size < 2) return;
+    const [date, price] = key.split("|");
+    // Extract common area from first address
+    const firstAddr = [...addresses][0];
+    const parts = firstAddr.split(",").map((s) => s.trim());
+    // Use street/estate name (everything before the town)
+    const location = parts.length >= 3 ? parts.slice(-3, -1).join(", ") : parts.slice(1).join(", ");
+    jobLots.push({
+      location,
+      count: addresses.size,
+      price: parseInt(price),
+      total: addresses.size * parseInt(price),
+      date,
+      addresses: [...addresses].sort(),
+    });
+  });
+
+  // Sort by total value descending
+  jobLots.sort((a, b) => b.total - a.total);
+
+  // Summary cards
+  const totalLots = jobLots.length;
+  const totalProperties = jobLots.reduce((sum, l) => sum + l.count, 0);
+  const totalValue = jobLots.reduce((sum, l) => sum + l.total, 0);
+  const largest = jobLots.reduce((max, l) => l.count > max.count ? l : max, jobLots[0]);
+
+  document.getElementById("job-lot-summary-cards").innerHTML = [
+    { label: "Job Lots", value: totalLots },
+    { label: "Properties", value: totalProperties },
+    { label: "Combined Value", value: "£" + (totalValue / 1e6).toFixed(1) + "m" },
+    { label: "Largest Lot", value: largest.count + " properties", sub: largest.location },
+  ].map((c) =>
+    `<div class="summary-card"><div class="summary-value">${c.value}</div><div class="summary-label">${c.label}</div>${c.sub ? `<div class="summary-sub">${c.sub}</div>` : ""}</div>`
+  ).join("");
+
+  // Table
+  const tbody = document.querySelector("#job-lot-table tbody");
+  tbody.innerHTML = jobLots.map((l) => {
+    const dateStr = new Date(l.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" });
+    const priceStr = l.price <= 10 ? "£" + l.price : formatPrice(l.price);
+    const totalStr = l.total <= 100 ? "£" + l.total : formatPrice(l.total);
+    return `<tr>
+      <td>${l.location}</td>
+      <td>${l.count}</td>
+      <td class="price-cell">${priceStr}</td>
+      <td class="price-cell">${totalStr}</td>
+      <td>${dateStr}</td>
+    </tr>`;
+  }).join("");
+}
+
 function initCharts() {
   Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   Chart.defaults.color = "#555";
 
   buildSummaryCards();
   buildTopSalesTable();
+  buildJobLotReport();
 
   // 1. Price trend line chart
   new Chart(document.getElementById("chart-price-trend"), {

@@ -372,6 +372,13 @@ html, body {
   margin-top: 0;
 }
 
+.report-description {
+  font-size: 13px;
+  color: #777;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
 /* Summary cards */
 .report-summary-cards {
   display: grid;
@@ -409,8 +416,9 @@ html, body {
   margin-top: 2px;
 }
 
-/* Top sales table address column */
-#top-sales-table td:first-child {
+/* Top sales / job lot table address columns */
+#top-sales-table td:first-child,
+#job-lot-table td:first-child {
   font-size: 12px;
   max-width: 260px;
   overflow: hidden;
