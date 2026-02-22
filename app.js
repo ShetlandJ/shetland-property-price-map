@@ -118,6 +118,54 @@ const reportSales = groups
 const addressToGroupIndex = {};
 groups.forEach((g, i) => { addressToGroupIndex[g.sales[0].address] = i; });
 
+// --- Notable sales filter categories ---
+const NOTABLE_FILTERS = [
+  { key: "all", label: "All properties" },
+  { key: "pound1", label: "£1 sales" },
+  { key: "bargain", label: "Under £1k" },
+  { key: "love", label: "Love, Favour & Affection" },
+  { key: "good-causes", label: "Certain Good Causes" },
+  { key: "top20", label: "Top 20 most expensive" },
+];
+
+// Pre-compute which group indices match each filter
+const notableFilterSets = new Map();
+
+notableFilterSets.set("pound1", new Set(
+  groups.reduce((acc, g, i) => {
+    if (g.sales.some(s => s.price === 1)) acc.push(i);
+    return acc;
+  }, [])
+));
+
+notableFilterSets.set("bargain", new Set(
+  groups.reduce((acc, g, i) => {
+    if (g.sales.some(s => s.price != null && s.price > 0 && s.price < 1000)) acc.push(i);
+    return acc;
+  }, [])
+));
+
+notableFilterSets.set("love", new Set(
+  groups.reduce((acc, g, i) => {
+    if (g.sales.some(s => s.note && s.note.toLowerCase().includes("love"))) acc.push(i);
+    return acc;
+  }, [])
+));
+
+notableFilterSets.set("good-causes", new Set(
+  groups.reduce((acc, g, i) => {
+    if (g.sales.some(s => s.note && s.note.toLowerCase().includes("certain good"))) acc.push(i);
+    return acc;
+  }, [])
+));
+
+// Top 20: from reportSales sorted by price desc, mapped back to group indices
+const top20Sales = [...reportSales].sort((a, b) => b.price - a.price).slice(0, 20);
+const top20Indices = new Set(top20Sales.map(s => addressToGroupIndex[s.address]).filter(i => i != null));
+notableFilterSets.set("top20", top20Indices);
+
+let activeNotableFilter = "all";
+
 // Global function for job lot popup links
 window.goToJobLotAddress = function (address) {
   const gi = addressToGroupIndex[address];
@@ -309,10 +357,17 @@ function applyYearFilter() {
 
   yearLabel.textContent = `${lo} – ${hi}`;
 
+  const notableSet = activeNotableFilter !== "all" ? notableFilterSets.get(activeNotableFilter) : null;
   const filteredHeatData = [];
   let visibleCount = 0;
 
   groups.forEach((group, i) => {
+    // Check notable filter first
+    if (notableSet && !notableSet.has(i)) {
+      if (markerLayer.hasLayer(groupMarkers[i])) markerLayer.removeLayer(groupMarkers[i]);
+      return;
+    }
+
     const salesInRange = group.sales.filter((s) => {
       const year = getPropertyYear(s);
       return year !== null && year >= lo && year <= hi;
@@ -335,6 +390,12 @@ function applyYearFilter() {
 
 yearMinInput.addEventListener("input", applyYearFilter);
 yearMaxInput.addEventListener("input", applyYearFilter);
+
+// --- Notable filter handler ---
+document.getElementById("notable-filter").addEventListener("change", (e) => {
+  activeNotableFilter = e.target.value;
+  applyYearFilter();
+});
 
 // --- Average price per year ---
 // Historical years are hardcoded since the data won't change.
@@ -938,8 +999,13 @@ const SearchControl = L.Control.extend({
 
   onAdd() {
     const container = L.DomUtil.create("div", "search-control");
+    const filterOptions = NOTABLE_FILTERS.map(f => {
+      const count = f.key === "all" ? groups.length : notableFilterSets.get(f.key).size;
+      return `<option value="${f.key}">${f.label} (${count})</option>`;
+    }).join("");
     container.innerHTML = `
       <input type="text" id="search-input" placeholder="Search address or postcode..." />
+      <select id="notable-filter">${filterOptions}</select>
       <div id="search-results"></div>
     `;
     L.DomEvent.disableClickPropagation(container);
