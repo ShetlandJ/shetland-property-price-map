@@ -433,7 +433,8 @@ infoOverlay.innerHTML = `
         <tbody></tbody>
       </table>
 
-      <h3>Job Lot Sales</h3>
+      <div class="report-section-divider"></div>
+      <h2 class="report-section-title">Job Lot Sales</h2>
       <p class="report-description">Bulk purchases where multiple properties at the same postcode sold for the same price on the same date. Click to expand and see individual properties.</p>
       <div id="job-lot-summary-cards" class="report-summary-cards"></div>
       <div id="job-lot-accordion"></div>
