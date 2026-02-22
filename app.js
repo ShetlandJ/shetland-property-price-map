@@ -356,6 +356,12 @@ if (cyCount > 0) {
   yearStats.push({ year: currentYear, avg: Math.round(cyTotal / cyCount), count: cyCount });
 }
 
+// Filtered stats: minimum 50 sales for price-based reports to be meaningful
+const MIN_YEAR_SALES = 50;
+const yearStatsReliable = yearStats.filter((s) => s.count >= MIN_YEAR_SALES);
+// Exclude current partial year from YoY comparisons
+const yearStatsComplete = yearStatsReliable.filter((s) => s.year !== currentYear);
+
 // --- Info button + overlay ---
 const InfoControl = L.Control.extend({
   options: { position: "topright" },
@@ -406,7 +412,7 @@ infoOverlay.innerHTML = `
           <table class="info-table">
             <thead><tr><th>Year</th><th>Avg Price</th><th>Sales</th></tr></thead>
             <tbody>
-              ${yearStats.map((s) => `<tr><td>${s.year}</td><td class="price-cell">${formatPrice(s.avg)}</td><td>${s.count}</td></tr>`).join("")}
+              ${yearStatsReliable.map((s) => `<tr><td>${s.year}${s.year === currentYear ? " *" : ""}</td><td class="price-cell">${formatPrice(s.avg)}</td><td>${s.count}</td></tr>`).join("")}
             </tbody>
           </table>
         </div>
@@ -552,15 +558,15 @@ function computeMonthlyStats() {
 
 function computeYoYChange() {
   const changes = [];
-  for (let i = 1; i < yearStats.length; i++) {
-    const pct = ((yearStats[i].avg - yearStats[i - 1].avg) / yearStats[i - 1].avg) * 100;
-    changes.push({ year: yearStats[i].year, pct: Math.round(pct * 10) / 10 });
+  for (let i = 1; i < yearStatsComplete.length; i++) {
+    const pct = ((yearStatsComplete[i].avg - yearStatsComplete[i - 1].avg) / yearStatsComplete[i - 1].avg) * 100;
+    changes.push({ year: yearStatsComplete[i].year, pct: Math.round(pct * 10) / 10 });
   }
   return changes;
 }
 
 function computeMarketValue() {
-  return yearStats.map((s) => ({
+  return yearStatsReliable.map((s) => ({
     year: s.year,
     total: s.avg * s.count,
   }));
@@ -571,8 +577,8 @@ function buildSummaryCards() {
   const totalValue = reportSales.reduce((sum, p) => sum + p.price, 0);
   const allPrices = reportSales.map((p) => p.price).sort((a, b) => a - b);
   const median = allPrices[Math.floor(allPrices.length / 2)];
-  const latest = yearStats[yearStats.length - 1];
-  const first = yearStats[0];
+  const latest = yearStatsComplete[yearStatsComplete.length - 1];
+  const first = yearStatsComplete[0];
   const overallChange = ((latest.avg - first.avg) / first.avg * 100).toFixed(0);
 
   const jobLotCount = properties.filter((p) => p.jobLot).length;
@@ -681,14 +687,14 @@ function initCharts() {
   buildTopSalesTable();
   buildJobLotReport();
 
-  // 1. Price trend line chart
+  // 1. Price trend line chart (reliable years only)
   new Chart(document.getElementById("chart-price-trend"), {
     type: "line",
     data: {
-      labels: yearStats.map((s) => s.year),
+      labels: yearStatsReliable.map((s) => s.year),
       datasets: [{
         label: "Average Sale Price",
-        data: yearStats.map((s) => s.avg),
+        data: yearStatsReliable.map((s) => s.avg),
         borderColor: "#2563eb",
         backgroundColor: "rgba(37, 99, 235, 0.1)",
         fill: true,
