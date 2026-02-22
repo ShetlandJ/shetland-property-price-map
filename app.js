@@ -216,24 +216,8 @@ const ToggleControl = L.Control.extend({
   },
 });
 
-new ToggleControl().addTo(map);
-
-document.getElementById("toggle-markers").addEventListener("change", (e) => {
-  if (e.target.checked) {
-    map.addLayer(markerLayer);
-    applyYearFilter(); // re-apply so only in-range markers show
-  } else {
-    map.removeLayer(markerLayer);
-  }
-});
-
-document.getElementById("toggle-heatmap").addEventListener("change", (e) => {
-  if (e.target.checked) {
-    map.addLayer(heatLayer);
-  } else {
-    map.removeLayer(heatLayer);
-  }
-});
+// Toggle control hidden for now — heatmap less useful, reduces clutter
+// new ToggleControl().addTo(map);
 
 // --- Year filter ---
 const yearMin = 2002;
@@ -368,7 +352,7 @@ const InfoControl = L.Control.extend({
 
   onAdd() {
     const container = L.DomUtil.create("div", "info-button-control");
-    container.innerHTML = '<button class="info-btn" aria-label="About this map">i</button>';
+    container.innerHTML = '<button class="info-btn" aria-label="About this map"><span class="info-btn-icon">i</span> About</button>';
     L.DomEvent.disableClickPropagation(container);
     container.querySelector(".info-btn").addEventListener("click", () => {
       document.getElementById("info-overlay").classList.add("open");

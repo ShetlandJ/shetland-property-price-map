@@ -263,21 +263,34 @@ html, body {
 }
 
 .info-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 20px;
   border: none;
   background: white;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
-  font-family: Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-size: 18px;
-  font-weight: 700;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 600;
   color: #555;
   cursor: pointer;
-  line-height: 32px;
+  padding: 7px 14px 7px 10px;
+}
+
+.info-btn-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 22px;
   text-align: center;
-  padding: 0;
+  flex-shrink: 0;
 }
 
 .info-btn:hover {
