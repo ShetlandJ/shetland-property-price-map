@@ -50,7 +50,7 @@ node fetch_data.js --stats      # Show progress stats
 
 ### Address grouping
 
-Properties are **grouped by address** at startup into a `groups` array (`Map<address, { lat, lng, sales[] }>`). Each group gets **one marker** on the map. Clicking a marker shows the full sale history for that address in the popup. This replaced the old 1-marker-per-sale approach.
+Properties are **grouped by address** at startup into a `groups` array (`Map<address, { lat, lng, sales[] }>`). Each group gets **one marker** on the map. Clicking a marker shows the full sale history for that address in the popup.
 
 - `groups` — one entry per unique address, sales sorted newest-first
 - `groupMarkers[]` — parallel array of Leaflet markers, one per group
@@ -62,32 +62,35 @@ Job lots are detected at runtime (not flagged in `data.js`). The logic: if 2+ di
 
 Note: the recorded price is the **lot price** (total for the whole bundle), not per-property. The per-property price is calculated as `lotPrice / count`.
 
-### Report data
+### Report data filtering
 
-- `reportSales` — one entry per address, the most recent **non-job-lot** priced sale. Used for price distribution, area stats, top 10 table, summary cards (total value, median). This prevents job lots from skewing averages and prevents multi-sale addresses from being counted multiple times.
+- `reportSales` — one entry per address, the most recent **non-job-lot** priced sale. Used for price distribution, area stats, top 10 table, summary cards (total value, median). Prevents job lots from skewing averages and multi-sale addresses from being double-counted.
 - `properties` (raw array) — still used for total sales count, monthly stats, and anything where every individual transaction matters.
 - `yearStats` — hardcoded historical averages (2002–2025), only current year computed live.
+- `yearStatsReliable` — filtered to years with `MIN_YEAR_SALES` (50+) to exclude low-volume noise (e.g. 2002 had only 3 sales). Used for price trend chart, market value chart, price table.
+- `yearStatsComplete` — reliable years excluding current partial year. Used for YoY change chart and price change summary card to avoid misleading partial-year comparisons.
 
 ## Key features
 
 - **Circle markers** colour-coded by price band (green < £100k through to red £275k+)
 - **Grouped by address** — one marker per address, popup shows full sale history
-- **Heatmap layer** (toggleable) — one heat point per address group
+- **Heatmap layer** — one heat point per address group. Toggle control currently hidden to reduce clutter.
 - **Year range filter** — dual-handle slider, shows marker if any sale in range, counts individual sales
 - **Search** — deduplicated by address, shows latest price + sale count
 - **Job lot detection** — runtime detection, badge in popups, clickable links to related properties
+- **About button** — blue "i" icon pill with "About" text (top-right), opens full-screen overlay
 - **Info overlay** — two tabs: About and Reports
 - **Reports tab** — collapsible accordion sections, all start collapsed:
   - Summary cards (total sales, total value, median, price change, job lot count)
-  - Average Sale Price by Year (chart + table)
-  - Year-on-Year Price Change
-  - Number of Sales per Year
-  - Total Market Value by Year
+  - Average Sale Price by Year (chart + table, reliable years only)
+  - Year-on-Year Price Change (complete years only, excludes current partial year)
+  - Number of Sales per Year (all years — low volume is useful info here)
+  - Total Market Value by Year (reliable years only)
   - Sales by Month
   - Sales by Price Band
   - Average Price by Area
-  - Top 10 Most Expensive Sales
-  - Job Lot Sales (summary cards + accordion panels with linked addresses)
+  - Top 10 Most Expensive Sales (excludes job lots)
+  - Job Lot Sales (summary cards + accordion panels with clickable linked addresses)
 - **Mobile** — bottom sheet for year filter + legend, responsive controls
 
 ### Jitter
@@ -100,8 +103,8 @@ Average prices for historical years (2002–2025) are hardcoded in `app.js` to a
 
 ## Conventions
 
-- No icon libraries — all icons are pure CSS (the "i" button uses serif italic text)
-- Leaflet controls positioned: search top-left, zoom + toggle + info top-right, legend bottom-right, year filter bottom-left
+- No icon libraries — About button uses serif italic "i" in a blue circle + text label
+- Leaflet controls positioned: search top-left, zoom + About top-right, year filter bottom-left. Legend bottom-right on desktop, inside bottom sheet on mobile.
 - Shadow pattern: `0 2px 12px rgba(0, 0, 0, 0.15)` used consistently
 - Colours: blue accent `#2563eb`, price bands defined in `PRICE_BANDS` at top of app.js
 - Helper functions: `formatPrice()` for full prices (£125,000), `formatShortPrice()` for compact (£125k, £1.2m)
