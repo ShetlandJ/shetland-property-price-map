@@ -420,6 +420,23 @@ infoOverlay.innerHTML = `
         price. Use the year filter and search to explore the data.
         Built by James Stewart (james@jastewart.co.uk).
       </p>
+
+      <h3 class="faq-heading">FAQ</h3>
+
+      <div class="faq-item">
+        <div class="faq-question">Why are the markers not over specific homes?</div>
+        <div class="faq-answer">Markers are positioned at a postcode-level point, not at individual properties. If multiple homes share the same postcode, they get arranged in a peerie circle around that point rather than sitting on the actual buildings.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">Why isn't my home listed?</div>
+        <div class="faq-answer">The data comes from Scotland's Land Information Service (ScotLIS), which records sold properties. Some homes are missing from their records. Others are passed between family members without a sale price, so they don't appear. Self-builds that have never been sold to a buyer won't be listed either. In rare cases, ScotLIS even has the postcode wrong for a property.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-question">When was the data last pulled?</div>
+        <div class="faq-answer">February 2026.</div>
+      </div>
     </div>
 
     <div class="info-tab-content" id="tab-reports">
@@ -1113,6 +1130,7 @@ function updateAreaSummary() {
 
     areaSummaryEl.innerHTML = `
       <div class="area-summary-name">${dominantArea}</div>
+      <div class="area-summary-subtitle">Visible area</div>
       <div class="area-summary-stats">
         <div class="area-summary-row"><span class="area-summary-key">Properties</span><span class="area-summary-val">${saleCount}</span></div>
         <div class="area-summary-row"><span class="area-summary-key">Avg price</span><span class="area-summary-val">${formatShortPrice(avg)}</span></div>
