@@ -428,12 +428,9 @@ infoOverlay.innerHTML = `
       </table>
 
       <h3>Job Lot Sales</h3>
-      <p class="report-description">Bulk purchases where multiple properties at the same postcode sold for the same price on the same date.</p>
+      <p class="report-description">Bulk purchases where multiple properties at the same postcode sold for the same price on the same date. Click to expand and see individual properties.</p>
       <div id="job-lot-summary-cards" class="report-summary-cards"></div>
-      <table class="info-table" id="job-lot-table">
-        <thead><tr><th>Location</th><th>Properties</th><th>Lot Price</th><th>Per Property</th><th>Date</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <div id="job-lot-accordion"></div>
     </div>
   </div>
 `;
@@ -592,20 +589,39 @@ function buildJobLotReport() {
     `<div class="summary-card"><div class="summary-value">${c.value}</div><div class="summary-label">${c.label}</div>${c.sub ? `<div class="summary-sub">${c.sub}</div>` : ""}</div>`
   ).join("");
 
-  // Table
-  const tbody = document.querySelector("#job-lot-table tbody");
-  tbody.innerHTML = jobLots.map((l) => {
+  // Accordion panels
+  const container = document.getElementById("job-lot-accordion");
+  container.innerHTML = jobLots.map((l, i) => {
     const dateStr = new Date(l.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" });
     const priceStr = l.price <= 10 ? "£" + l.price : formatPrice(l.price);
     const perProperty = l.price > 10 ? formatPrice(Math.round(l.price / l.count)) : "£" + Math.round(l.price / l.count);
-    return `<tr>
-      <td>${l.location}</td>
-      <td>${l.count}</td>
-      <td class="price-cell">${priceStr}</td>
-      <td class="price-cell">${perProperty}</td>
-      <td>${dateStr}</td>
-    </tr>`;
+    const addressList = l.addresses.map((addr) =>
+      `<a class="jl-address-link" href="#" onclick="event.preventDefault();goToJobLotAddress('${addr.replace(/'/g, "\\'")}')">${addr}</a>`
+    ).join("");
+    return `<div class="jl-panel">
+      <button class="jl-panel-header" data-index="${i}">
+        <div class="jl-panel-title">
+          <span class="jl-panel-location">${l.location}</span>
+          <span class="jl-panel-meta">${l.count} properties &middot; ${priceStr} &middot; ${dateStr}</span>
+        </div>
+        <span class="jl-panel-chevron">&#9654;</span>
+      </button>
+      <div class="jl-panel-body">
+        <div class="jl-panel-stats">
+          <span>Lot price: <strong>${priceStr}</strong></span>
+          <span>Per property: <strong>${perProperty}</strong></span>
+        </div>
+        <div class="jl-panel-addresses">${addressList}</div>
+      </div>
+    </div>`;
   }).join("");
+
+  container.querySelectorAll(".jl-panel-header").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const panel = btn.closest(".jl-panel");
+      panel.classList.toggle("open");
+    });
+  });
 }
 
 function initCharts() {
