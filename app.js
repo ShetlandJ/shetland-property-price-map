@@ -391,12 +391,6 @@ function applyYearFilter() {
 yearMinInput.addEventListener("input", applyYearFilter);
 yearMaxInput.addEventListener("input", applyYearFilter);
 
-// --- Notable filter handler ---
-document.getElementById("notable-filter").addEventListener("change", (e) => {
-  activeNotableFilter = e.target.value;
-  applyYearFilter();
-});
-
 // --- Average price per year ---
 // Historical years are hardcoded since the data won't change.
 // Only the current year is computed live.
@@ -1015,6 +1009,12 @@ const SearchControl = L.Control.extend({
 });
 
 new SearchControl().addTo(map);
+
+// --- Notable filter handler ---
+document.getElementById("notable-filter").addEventListener("change", (e) => {
+  activeNotableFilter = e.target.value;
+  applyYearFilter();
+});
 
 const searchInput = document.getElementById("search-input");
 const searchResults = document.getElementById("search-results");
