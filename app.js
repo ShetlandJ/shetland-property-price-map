@@ -394,50 +394,84 @@ infoOverlay.innerHTML = `
         price. Use the year filter and search to explore the data.
         Built by James Stewart (james@jastewart.co.uk).
       </p>
-      <h3>Average Sale Price by Year</h3>
-      <table class="info-table">
-        <thead><tr><th>Year</th><th>Avg Price</th><th>Sales</th></tr></thead>
-        <tbody>
-          ${yearStats.map((s) => `<tr><td>${s.year}</td><td class="price-cell">${formatPrice(s.avg)}</td><td>${s.count}</td></tr>`).join("")}
-        </tbody>
-      </table>
     </div>
 
     <div class="info-tab-content" id="tab-reports">
       <div class="report-summary-cards" id="report-summary-cards"></div>
 
-      <h3>Average Sale Price Over Time</h3>
-      <div class="chart-container"><canvas id="chart-price-trend"></canvas></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Average Sale Price by Year</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <div class="chart-container"><canvas id="chart-price-trend"></canvas></div>
+          <table class="info-table">
+            <thead><tr><th>Year</th><th>Avg Price</th><th>Sales</th></tr></thead>
+            <tbody>
+              ${yearStats.map((s) => `<tr><td>${s.year}</td><td class="price-cell">${formatPrice(s.avg)}</td><td>${s.count}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-      <h3>Year-on-Year Price Change</h3>
-      <div class="chart-container"><canvas id="chart-yoy"></canvas></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Year-on-Year Price Change</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <div class="chart-container"><canvas id="chart-yoy"></canvas></div>
+        </div>
+      </div>
 
-      <h3>Number of Sales per Year</h3>
-      <div class="chart-container"><canvas id="chart-volume"></canvas></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Number of Sales per Year</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <div class="chart-container"><canvas id="chart-volume"></canvas></div>
+        </div>
+      </div>
 
-      <h3>Total Market Value by Year</h3>
-      <div class="chart-container"><canvas id="chart-market-value"></canvas></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Total Market Value by Year</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <div class="chart-container"><canvas id="chart-market-value"></canvas></div>
+        </div>
+      </div>
 
-      <h3>Sales by Month</h3>
-      <div class="chart-container"><canvas id="chart-monthly"></canvas></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Sales by Month</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <div class="chart-container"><canvas id="chart-monthly"></canvas></div>
+        </div>
+      </div>
 
-      <h3>Sales by Price Band</h3>
-      <div class="chart-container"><canvas id="chart-distribution"></canvas></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Sales by Price Band</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <div class="chart-container"><canvas id="chart-distribution"></canvas></div>
+        </div>
+      </div>
 
-      <h3>Average Price by Area</h3>
-      <div class="chart-container"><canvas id="chart-area"></canvas></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Average Price by Area</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <div class="chart-container"><canvas id="chart-area"></canvas></div>
+        </div>
+      </div>
 
-      <h3>Top 10 Most Expensive Sales</h3>
-      <table class="info-table" id="top-sales-table">
-        <thead><tr><th>Address</th><th>Price</th><th>Date</th></tr></thead>
-        <tbody></tbody>
-      </table>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Top 10 Most Expensive Sales</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <table class="info-table" id="top-sales-table">
+            <thead><tr><th>Address</th><th>Price</th><th>Date</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
 
-      <div class="report-section-divider"></div>
-      <h2 class="report-section-title">Job Lot Sales</h2>
-      <p class="report-description">Bulk purchases where multiple properties at the same postcode sold for the same price on the same date. Click to expand and see individual properties.</p>
-      <div id="job-lot-summary-cards" class="report-summary-cards"></div>
-      <div id="job-lot-accordion"></div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Job Lot Sales</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <p class="report-description">Bulk purchases where multiple properties at the same postcode sold for the same price on the same date.</p>
+          <div id="job-lot-summary-cards" class="report-summary-cards"></div>
+          <div id="job-lot-accordion"></div>
+        </div>
+      </div>
     </div>
   </div>
 `;
@@ -445,6 +479,13 @@ document.body.appendChild(infoOverlay);
 
 infoOverlay.querySelector(".info-close-btn").addEventListener("click", () => {
   infoOverlay.classList.remove("open");
+});
+
+// --- Collapsible report sections ---
+infoOverlay.querySelectorAll(".report-collapse-header").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    btn.closest(".report-collapse").classList.toggle("open");
+  });
 });
 
 // --- Tab switching ---

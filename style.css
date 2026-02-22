@@ -360,29 +360,53 @@ html, body {
   max-width: 100%;
 }
 
-#tab-reports h3 {
+
+/* Collapsible report sections */
+.report-collapse {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.report-collapse-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
   font-size: 15px;
   font-weight: 600;
-  color: #333;
-  margin-bottom: 12px;
-  margin-top: 24px;
-}
-
-#tab-reports h3:first-child {
-  margin-top: 0;
-}
-
-.report-section-divider {
-  border-top: 2px solid #e2e8f0;
-  margin-top: 36px;
-}
-
-.report-section-title {
-  font-size: 20px;
-  font-weight: 700;
   color: #1a1a1a;
-  margin-top: 28px;
-  margin-bottom: 8px;
+  text-align: left;
+}
+
+.report-collapse-header:hover {
+  background: #f1f5f9;
+}
+
+.report-collapse-chevron {
+  font-size: 10px;
+  color: #aaa;
+  transition: transform 0.2s;
+}
+
+.report-collapse.open .report-collapse-chevron {
+  transform: rotate(90deg);
+}
+
+.report-collapse-body {
+  display: none;
+  padding: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.report-collapse.open .report-collapse-body {
+  display: block;
 }
 
 .report-description {
