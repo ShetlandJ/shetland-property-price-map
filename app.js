@@ -431,7 +431,7 @@ infoOverlay.innerHTML = `
       <p class="report-description">Bulk purchases where multiple properties at the same postcode sold for the same price on the same date.</p>
       <div id="job-lot-summary-cards" class="report-summary-cards"></div>
       <table class="info-table" id="job-lot-table">
-        <thead><tr><th>Location</th><th>Properties</th><th>Price Each</th><th>Total</th><th>Date</th></tr></thead>
+        <thead><tr><th>Location</th><th>Properties</th><th>Lot Price</th><th>Per Property</th><th>Date</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -569,19 +569,18 @@ function buildJobLotReport() {
       location,
       count: addresses.size,
       price: parseInt(price),
-      total: addresses.size * parseInt(price),
       date,
       addresses: [...addresses].sort(),
     });
   });
 
-  // Sort by total value descending
-  jobLots.sort((a, b) => b.total - a.total);
+  // Sort by lot price descending
+  jobLots.sort((a, b) => b.price - a.price);
 
   // Summary cards
   const totalLots = jobLots.length;
   const totalProperties = jobLots.reduce((sum, l) => sum + l.count, 0);
-  const totalValue = jobLots.reduce((sum, l) => sum + l.total, 0);
+  const totalValue = jobLots.reduce((sum, l) => sum + l.price, 0);
   const largest = jobLots.reduce((max, l) => l.count > max.count ? l : max, jobLots[0]);
 
   document.getElementById("job-lot-summary-cards").innerHTML = [
@@ -598,12 +597,12 @@ function buildJobLotReport() {
   tbody.innerHTML = jobLots.map((l) => {
     const dateStr = new Date(l.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" });
     const priceStr = l.price <= 10 ? "£" + l.price : formatPrice(l.price);
-    const totalStr = l.total <= 100 ? "£" + l.total : formatPrice(l.total);
+    const perProperty = l.price > 10 ? formatPrice(Math.round(l.price / l.count)) : "£" + Math.round(l.price / l.count);
     return `<tr>
       <td>${l.location}</td>
       <td>${l.count}</td>
       <td class="price-cell">${priceStr}</td>
-      <td class="price-cell">${totalStr}</td>
+      <td class="price-cell">${perProperty}</td>
       <td>${dateStr}</td>
     </tr>`;
   }).join("");
