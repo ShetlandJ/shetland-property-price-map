@@ -29,11 +29,51 @@ L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
 }).addTo(map);
 
-// --- Jitter overlapping markers ---
-// Properties sharing a postcode have identical coords; offset them so all are visible
-const coordCounts = {};
+// --- Detect job lots: multiple different addresses at same postcode with same price on same date ---
+const datePricePostcodeBuckets = new Map();
 properties.forEach((p) => {
-  const key = `${p.lat},${p.lng}`;
+  if (p.price == null) return;
+  const key = `${p.date}|${p.price}|${p.lat},${p.lng}`;
+  if (!datePricePostcodeBuckets.has(key)) datePricePostcodeBuckets.set(key, new Set());
+  datePricePostcodeBuckets.get(key).add(p.address);
+});
+properties.forEach((p) => {
+  if (p.price == null) return;
+  const key = `${p.date}|${p.price}|${p.lat},${p.lng}`;
+  if (datePricePostcodeBuckets.get(key).size > 1) p.jobLot = true;
+});
+
+// --- Group properties by address ---
+const addressGroups = new Map();
+properties.forEach((p) => {
+  if (!addressGroups.has(p.address)) {
+    addressGroups.set(p.address, { lat: p.lat, lng: p.lng, sales: [] });
+  }
+  addressGroups.get(p.address).sales.push(p);
+});
+
+// Sort each group's sales newest first
+addressGroups.forEach((group) => {
+  group.sales.sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
+});
+
+const groups = Array.from(addressGroups.values());
+
+// Helper: most recent sale with a valid price
+function getLatestPricedSale(sales) {
+  return sales.find((s) => s.price != null) || sales[0];
+}
+
+// For reports: one entry per address, most recent non-job-lot priced sale
+const reportSales = groups
+  .map((g) => g.sales.find((s) => s.price != null && !s.jobLot))
+  .filter((s) => s != null);
+
+// --- Jitter overlapping markers ---
+// Addresses sharing a postcode have identical coords; offset them so all are visible
+const coordCounts = {};
+groups.forEach((g) => {
+  const key = `${g.lat},${g.lng}`;
   coordCounts[key] = (coordCounts[key] || 0) + 1;
 });
 
@@ -48,14 +88,17 @@ const coordIndex = {};
 
 // --- Marker layer ---
 const markerLayer = L.layerGroup();
-const propertyMarkers = []; // parallel array: propertyMarkers[i] corresponds to properties[i]
+const groupMarkers = []; // groupMarkers[i] corresponds to groups[i]
 
-properties.forEach((p, i) => {
-  const key = `${p.lat},${p.lng}`;
-  const idx = coordIndex[key] = (coordIndex[key] || 0);
+groups.forEach((group, i) => {
+  const key = `${group.lat},${group.lng}`;
+  const idx = (coordIndex[key] = coordIndex[key] || 0);
   coordIndex[key]++;
-  const [jLat, jLng] = jitter(p.lat, p.lng, idx, coordCounts[key]);
-  const band = getPriceBand(p.price);
+  const [jLat, jLng] = jitter(group.lat, group.lng, idx, coordCounts[key]);
+
+  const latest = getLatestPricedSale(group.sales);
+  const band = latest.price != null ? getPriceBand(latest.price) : PRICE_BANDS[0];
+
   const marker = L.circleMarker([jLat, jLng], {
     radius: 6,
     fillColor: band.color,
@@ -65,26 +108,41 @@ properties.forEach((p, i) => {
     fillOpacity: 0.85,
   });
   marker._origStyle = { fillColor: band.color, color: "#fff", weight: 2, radius: 6 };
+  marker._group = group;
 
-  const dateStr = p.date
-    ? new Date(p.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" })
-    : "";
+  // Build popup with sale history
+  let popupHtml = `<div class="popup-address">${group.sales[0].address}</div>`;
+  popupHtml += '<div class="popup-sales-list">';
+  group.sales.forEach((s) => {
+    const dateStr = s.date
+      ? new Date(s.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" })
+      : "";
+    const priceStr =
+      s.price != null
+        ? formatPrice(s.price)
+        : `<span class="popup-no-price">${s.note || "No price"}</span>`;
+    const jobLotBadge = s.jobLot ? '<span class="popup-job-lot">Job lot</span>' : "";
+    popupHtml += `<div class="popup-sale-row">
+      <span class="popup-sale-date">${dateStr}</span>
+      <span class="popup-sale-price">${priceStr}${jobLotBadge}</span>
+    </div>`;
+  });
+  popupHtml += "</div>";
 
-  marker.bindPopup(`
-    <div class="popup-price">${formatPrice(p.price)}${p.jobLot ? '<span class="popup-job-lot">Possible job lot</span>' : ""}</div>
-    <div class="popup-address">${p.address}</div>
-    ${dateStr ? `<div class="popup-details"><span>Sold ${dateStr}</span></div>` : ""}
-  `);
+  marker.bindPopup(popupHtml, { maxWidth: 280, minWidth: 200 });
 
   markerLayer.addLayer(marker);
-  propertyMarkers[i] = marker;
+  groupMarkers[i] = marker;
 });
 
 markerLayer.addTo(map);
 
 // --- Heatmap layer ---
-const maxPrice = properties.reduce((max, p) => Math.max(max, p.price), 0);
-const heatData = properties.map((p) => [p.lat, p.lng, p.price / maxPrice]);
+const maxPrice = properties.reduce((max, p) => Math.max(max, p.price || 0), 0);
+const heatData = groups.map((g) => {
+  const latest = getLatestPricedSale(g.sales);
+  return [g.lat, g.lng, (latest.price || 0) / maxPrice];
+});
 
 const heatLayer = L.heatLayer(heatData, {
   radius: 35,
@@ -194,15 +252,18 @@ function applyYearFilter() {
   const filteredHeatData = [];
   let visibleCount = 0;
 
-  properties.forEach((p, i) => {
-    const year = getPropertyYear(p);
-    const inRange = year !== null && year >= lo && year <= hi;
-    const marker = propertyMarkers[i];
+  groups.forEach((group, i) => {
+    const salesInRange = group.sales.filter((s) => {
+      const year = getPropertyYear(s);
+      return year !== null && year >= lo && year <= hi;
+    });
+    const marker = groupMarkers[i];
 
-    if (inRange) {
+    if (salesInRange.length > 0) {
       if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
-      filteredHeatData.push([p.lat, p.lng, p.price / maxPrice]);
-      visibleCount++;
+      const latest = salesInRange.find((s) => s.price != null) || salesInRange[0];
+      filteredHeatData.push([group.lat, group.lng, (latest.price || 0) / maxPrice]);
+      visibleCount += salesInRange.length;
     } else {
       if (markerLayer.hasLayer(marker)) markerLayer.removeLayer(marker);
     }
@@ -363,7 +424,7 @@ let chartsInitialized = false;
 
 function computePriceDistribution() {
   const counts = PRICE_BANDS.map(() => 0);
-  properties.forEach((p) => {
+  reportSales.forEach((p) => {
     const idx = PRICE_BANDS.findIndex((band) => p.price <= band.max);
     if (idx !== -1) counts[idx]++;
   });
@@ -372,7 +433,7 @@ function computePriceDistribution() {
 
 function computeAreaStats() {
   const areas = {};
-  properties.forEach((p) => {
+  reportSales.forEach((p) => {
     const parts = p.address.split(",").map((s) => s.trim());
     const shetlandIdx = parts.findIndex((s) => s === "SHETLAND");
     const area = shetlandIdx > 0 ? parts[shetlandIdx - 1] : parts[1] || "Unknown";
@@ -420,8 +481,8 @@ function computeMarketValue() {
 
 function buildSummaryCards() {
   const totalSales = properties.length;
-  const totalValue = properties.reduce((sum, p) => sum + p.price, 0);
-  const allPrices = properties.map((p) => p.price).sort((a, b) => a - b);
+  const totalValue = reportSales.reduce((sum, p) => sum + p.price, 0);
+  const allPrices = reportSales.map((p) => p.price).sort((a, b) => a - b);
   const median = allPrices[Math.floor(allPrices.length / 2)];
   const latest = yearStats[yearStats.length - 1];
   const first = yearStats[0];
@@ -434,7 +495,7 @@ function buildSummaryCards() {
     { label: "Total Value", value: "£" + (totalValue / 1e6).toFixed(1) + "m" },
     { label: "Median Price", value: formatPrice(median) },
     { label: "Price Change", value: (overallChange > 0 ? "+" : "") + overallChange + "%", sub: `${first.year}–${latest.year}` },
-    { label: "Possible Job Lots", value: jobLotCount, sub: "same price & date" },
+    { label: "Job Lot Sales", value: jobLotCount, sub: "same postcode, price & date" },
   ];
 
   document.getElementById("report-summary-cards").innerHTML = cards.map((c) =>
@@ -443,7 +504,7 @@ function buildSummaryCards() {
 }
 
 function buildTopSalesTable() {
-  const top = [...properties].sort((a, b) => b.price - a.price).slice(0, 10);
+  const top = [...reportSales].sort((a, b) => b.price - a.price).slice(0, 10);
   const tbody = document.querySelector("#top-sales-table tbody");
   tbody.innerHTML = top.map((p) => {
     const dateStr = p.date ? new Date(p.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" }) : "";
@@ -704,9 +765,9 @@ function highlightMarker(marker) {
   highlightedMarkers.push(marker);
 }
 
-function goToResult(index) {
+function goToResult(groupIndex) {
   clearHighlights();
-  const marker = propertyMarkers[index];
+  const marker = groupMarkers[groupIndex];
   // Ensure marker is visible even if outside year filter
   if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
   if (!map.hasLayer(markerLayer)) map.addLayer(markerLayer);
@@ -743,8 +804,8 @@ function doSearch() {
   if (query.length < 3) return;
 
   const matches = [];
-  properties.forEach((p, i) => {
-    if (normalize(p.address).includes(query)) {
+  groups.forEach((group, i) => {
+    if (normalize(group.sales[0].address).includes(query)) {
       matches.push(i);
     }
   });
@@ -763,11 +824,13 @@ function doSearch() {
   // Multiple results — show list (cap at 50)
   const shown = matches.slice(0, 50);
   searchResults.innerHTML = shown.map((i) => {
-    const p = properties[i];
-    const dateStr = p.date ? new Date(p.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" }) : "";
+    const group = groups[i];
+    const latest = getLatestPricedSale(group.sales);
+    const priceStr = latest.price != null ? formatPrice(latest.price) : "No price";
+    const salesCount = group.sales.length;
     return `<div class="search-item" data-index="${i}">
-      <span class="search-item-address">${p.address}</span>
-      <span class="search-item-meta">${formatPrice(p.price)}${dateStr ? " &middot; " + dateStr : ""}</span>
+      <span class="search-item-address">${group.sales[0].address}</span>
+      <span class="search-item-meta">${priceStr}${salesCount > 1 ? " &middot; " + salesCount + " sales" : ""}</span>
     </div>`;
   }).join("");
 

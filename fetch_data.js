@@ -24,6 +24,32 @@ const CACHE_DIR = path.join(__dirname, "cache");
 const PROGRESS_FILE = path.join(CACHE_DIR, "progress.json");
 const POSTCODES_FILE = path.join(CACHE_DIR, "postcodes.json");
 const OUTPUT_FILE = path.join(__dirname, "data.js");
+const WAF_TOKEN_FILE = path.join(CACHE_DIR, "waf_token.json");
+
+// --- WAF Token Management ---
+
+let wafToken = null;
+let wafTokenTime = 0;
+
+function getWafToken() {
+  // Always re-read from file cache (allows external refresh while running)
+  if (fs.existsSync(WAF_TOKEN_FILE)) {
+    const cached = JSON.parse(fs.readFileSync(WAF_TOKEN_FILE, "utf8"));
+    wafToken = cached.token;
+    wafTokenTime = cached.time;
+    return wafToken;
+  }
+
+  // Fallback: check for CLI-provided token
+  const cliToken = process.argv.find((a) => a.startsWith("--waf-token="));
+  if (cliToken) {
+    wafToken = cliToken.split("=").slice(1).join("=");
+    wafTokenTime = Date.now();
+    return wafToken;
+  }
+
+  throw new Error("No WAF token found. Write token to cache/waf_token.json or pass --waf-token=...");
+}
 
 // --- Helpers ---
 
@@ -36,13 +62,19 @@ function randomDelay() {
   return 18000 + Math.random() * 5000;
 }
 
-function httpsGet(url) {
+function httpsGet(url, { parseJson = true, cookie = null } = {}) {
   return new Promise((resolve, reject) => {
-    const req = https.get(url, { headers: { "User-Agent": "Mozilla/5.0" } }, (res) => {
+    const headers = {
+      "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    };
+    if (cookie) headers["Cookie"] = cookie;
+
+    const req = https.get(url, { headers }, (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
+          if (!parseJson) return resolve(data);
           try {
             resolve(JSON.parse(data));
           } catch (e) {
@@ -170,31 +202,51 @@ function parseConsideration(consideration) {
   return { price: null, note: consideration };
 }
 
-async function fetchPostcode(postcode) {
+async function fetchPostcode(postcode, retries = 3) {
   const encoded = encodeURIComponent(postcode);
-  const url = `https://scotlis.ros.gov.uk/public/bff/land-register/addresses?postcode=${encoded}`;
-  const data = await httpsGet(url);
+  const url = `https://scotlis.ros.gov.uk/results?searchType=prices&postcode=${encoded}&sortBy=address&sortDir=asc`;
 
-  const results = [];
-  const addresses = data?._embedded?.addresses || [];
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const token = await getWafToken();
+    const html = await httpsGet(url, { parseJson: false, cookie: token });
 
-  for (const addr of addresses) {
-    const address = addr.prettyPrint;
-    const titles = addr.titles || [];
+    // Extract __NEXT_DATA__ JSON from the server-rendered page
+    const match = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/);
+    if (!match) {
+      throw new Error(`No __NEXT_DATA__ found in response for ${postcode}`);
+    }
 
-    for (const title of titles) {
-      const { price, note } = parseConsideration(title.consideration);
+    const nextData = JSON.parse(match[1]);
+    const addresses = nextData?.props?.pageProps?.addresses || [];
+
+    // Detect stripped responses: entries exist but none have consideration/entryDate
+    // This happens when WAF token is expired or invalid
+    if (addresses.length > 0 && addresses.every((a) => !a.consideration && !a.entryDate)) {
+      if (attempt < retries) {
+        process.stdout.write(` [stripped, waiting for token refresh...]`);
+        // Wait longer each retry — gives time to externally refresh the token file
+        await sleep(10000 * attempt);
+        continue;
+      }
+      // After all retries, still stripped — skip this postcode for now
+      process.stdout.write(` [SKIPPED: stripped after ${retries} retries]`);
+      return null;
+    }
+
+    const results = [];
+    for (const entry of addresses) {
+      const { price, note } = parseConsideration(entry.consideration);
       results.push({
-        address,
-        date: title.entryDate || null,
+        address: entry.prettyPrint,
+        date: entry.entryDate || null,
         price,
         note,
-        titleNumber: title.titleNumber || null,
+        titleNumber: entry.titleNumber || null,
       });
     }
-  }
 
-  return results;
+    return results;
+  }
 }
 
 // --- Progress Management ---
@@ -342,6 +394,14 @@ async function main() {
 
     try {
       const results = await fetchPostcode(postcode);
+      if (results === null) {
+        // Stripped response after retries — don't mark completed, will retry next run
+        fetchedThisSession++;
+        saveProgress(progress);
+        const delay = randomDelay();
+        await sleep(delay);
+        continue;
+      }
       progress.properties.push(...results);
       progress.completed[postcode] = { count: results.length, time: new Date().toISOString() };
       fetchedThisSession++;

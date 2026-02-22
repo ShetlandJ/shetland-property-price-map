@@ -505,17 +505,11 @@ html, body {
   line-height: 1.5;
 }
 
-.popup-price {
-  font-size: 20px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
 .popup-address {
   font-size: 14px;
-  color: #555;
-  margin-bottom: 8px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
 }
 
 .popup-job-lot {
@@ -531,17 +525,44 @@ html, body {
   letter-spacing: 0.3px;
 }
 
-.popup-details {
-  display: flex;
-  gap: 12px;
-  font-size: 13px;
-  color: #777;
+.popup-sales-list {
+  margin-top: 8px;
+  border-top: 1px solid #eee;
+  padding-top: 6px;
 }
 
-.popup-details span {
-  background: #f1f5f9;
-  padding: 2px 8px;
-  border-radius: 4px;
+.popup-sale-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+  font-size: 13px;
+  gap: 12px;
+}
+
+.popup-sale-row:not(:last-child) {
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.popup-sale-row:first-child {
+  font-weight: 600;
+}
+
+.popup-sale-date {
+  color: #777;
+  white-space: nowrap;
+}
+
+.popup-sale-price {
+  color: #1a1a1a;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.popup-no-price {
+  color: #999;
+  font-style: italic;
+  font-weight: 400;
 }
 
 /* Mobile responsive */
@@ -621,12 +642,12 @@ html, body {
     max-height: 250px;
   }
 
-  .popup-price {
-    font-size: 17px;
-  }
-
   .popup-address {
     font-size: 13px;
+  }
+
+  .popup-sale-row {
+    font-size: 12px;
   }
 
   /* Info overlay mobile tweaks */
