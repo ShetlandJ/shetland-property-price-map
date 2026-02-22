@@ -442,14 +442,13 @@ html, body {
   width: 100%;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: #f8fafc;
   border: none;
   cursor: pointer;
   font-family: inherit;
   text-align: left;
-  gap: 8px;
+  gap: 12px;
 }
 
 .jl-panel-header:hover {
@@ -459,13 +458,14 @@ html, body {
 .jl-panel-title {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
   min-width: 0;
+  flex: 1;
 }
 
 .jl-panel-location {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #1a1a1a;
   white-space: nowrap;
   overflow: hidden;
@@ -473,8 +473,19 @@ html, body {
 }
 
 .jl-panel-meta {
-  font-size: 12px;
+  font-size: 13px;
   color: #888;
+}
+
+.jl-panel-price-badge {
+  flex-shrink: 0;
+  background: #2563eb;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
 }
 
 .jl-panel-chevron {

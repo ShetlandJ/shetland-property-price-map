@@ -15,6 +15,12 @@ function formatPrice(price) {
   return "£" + price.toLocaleString("en-GB");
 }
 
+function formatShortPrice(price) {
+  if (price >= 1000000) return "£" + (price / 1e6).toFixed(1).replace(/\.0$/, "") + "m";
+  if (price >= 1000) return "£" + Math.round(price / 1000) + "k";
+  return "£" + price;
+}
+
 // Initialize map centered on Shetland
 const map = L.map("map", {
   center: [60.39, -1.14],
@@ -593,8 +599,8 @@ function buildJobLotReport() {
   const container = document.getElementById("job-lot-accordion");
   container.innerHTML = jobLots.map((l, i) => {
     const dateStr = new Date(l.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" });
-    const priceStr = l.price <= 10 ? "£" + l.price : formatPrice(l.price);
-    const perProperty = l.price > 10 ? formatPrice(Math.round(l.price / l.count)) : "£" + Math.round(l.price / l.count);
+    const shortPrice = formatShortPrice(l.price);
+    const perProperty = formatShortPrice(Math.round(l.price / l.count));
     const addressList = l.addresses.map((addr) =>
       `<a class="jl-address-link" href="#" onclick="event.preventDefault();goToJobLotAddress('${addr.replace(/'/g, "\\'")}')">${addr}</a>`
     ).join("");
@@ -602,13 +608,14 @@ function buildJobLotReport() {
       <button class="jl-panel-header" data-index="${i}">
         <div class="jl-panel-title">
           <span class="jl-panel-location">${l.location}</span>
-          <span class="jl-panel-meta">${l.count} properties &middot; ${priceStr} &middot; ${dateStr}</span>
+          <span class="jl-panel-meta">${l.count} properties &middot; ${dateStr}</span>
         </div>
+        <span class="jl-panel-price-badge">${shortPrice}</span>
         <span class="jl-panel-chevron">&#9654;</span>
       </button>
       <div class="jl-panel-body">
         <div class="jl-panel-stats">
-          <span>Lot price: <strong>${priceStr}</strong></span>
+          <span>Lot price: <strong>${formatPrice(l.price)}</strong></span>
           <span>Per property: <strong>${perProperty}</strong></span>
         </div>
         <div class="jl-panel-addresses">${addressList}</div>
