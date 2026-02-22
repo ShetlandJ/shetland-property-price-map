@@ -3219,7 +3219,7 @@ const properties = [
   { lat: 60.364082, lng: -0.995279, price: 231000, address: "BROCHS, WHALSAY, SHETLAND, ZE2 9AL", date: "2015-07-22" },
   { lat: 60.716068, lng: -0.925087, price: 34748, address: "BRONDHUS, UNST, SHETLAND, ZE2 9DW", date: "2006-05-26" },
   { lat: 59.886423, lng: -1.306918, price: null, address: "BROOK HOUSE, TOAB, VIRKIE, SHETLAND, ZE3 9JL", date: "2021-03-01", note: "No price available" },
-  { lat: 60.205884, lng: -1.593594, price: 59000, address: "BROOKERS COTTAGE, HAMNAVOE, YELL, SHETLAND, ZE2 9PA", date: "2007-02-01" },
+  { lat: 60.500687, lng: -1.083088, price: 59000, address: "BROOKERS COTTAGE, HAMNAVOE, YELL, SHETLAND, ZE2 9BA", date: "2007-02-01" },
   { lat: 60.169353, lng: -1.166141, price: 275000, address: "BROOKSIDE, GREMISTA INDUSTRIAL ESTATE, LERWICK, SHETLAND, ZE1 0PX", date: "2021-06-16" },
   { lat: 60.713451, lng: -1.023234, price: 85000, address: "BROUGH FARM, CULLIVOE, YELL, SHETLAND, ZE2 9DD", date: "2018-05-15" },
   { lat: 59.890612, lng: -1.294197, price: 62600, address: "BROUGH HEAD, EASTSHORE, VIRKIE, SHETLAND, ZE3 9JS", date: "2013-01-11" },

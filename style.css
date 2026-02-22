@@ -899,10 +899,9 @@ html, body {
     font-size: 13px;
   }
 
-  /* Hide desktop year filter, legend, and area summary on mobile */
+  /* Hide desktop year filter and legend on mobile */
   .year-filter-control,
-  .legend-control,
-  .area-summary-control {
+  .legend-control {
     display: none !important;
   }
 
