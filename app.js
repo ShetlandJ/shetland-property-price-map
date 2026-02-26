@@ -510,11 +510,13 @@ function toggleDeltaView() {
       if (listing) {
         const band = getDeltaBand(listing.deltaPercent);
         marker.setStyle({ fillColor: band.color, fillOpacity: 0.85 });
+        if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
       } else {
-        marker.setStyle({ fillColor: "#d1d5db", fillOpacity: 0.4 });
+        markerLayer.removeLayer(marker);
       }
     } else {
       marker.setStyle({ fillColor: marker._origStyle.fillColor, fillOpacity: 0.85 });
+      if (!markerLayer.hasLayer(marker)) markerLayer.addLayer(marker);
     }
   });
 }
