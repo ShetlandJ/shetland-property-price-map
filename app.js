@@ -497,6 +497,21 @@ infoOverlay.innerHTML = `
     <div class="info-tab-content" id="tab-reports">
       <div class="report-summary-cards" id="report-summary-cards"></div>
 
+      ${typeof listingsData !== "undefined" && listingsData.length > 0 ? `
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Asking vs Sold Price</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <p class="report-description">How much do Shetland properties sell for relative to their asking price? Based on ${listingsData.length} matched sales from agent listings (mostly "Offers Over").</p>
+          <div id="asking-vs-sold-summary" class="report-summary-cards"></div>
+          <div class="chart-container"><canvas id="chart-asking-vs-sold"></canvas></div>
+          <table class="info-table" id="asking-vs-sold-table">
+            <thead><tr><th>Address</th><th>Asked</th><th>Sold</th><th>Delta</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      ` : ""}
+
       <div class="report-collapse">
         <button class="report-collapse-header"><span>Average Sale Price by Year</span><span class="report-collapse-chevron">&#9654;</span></button>
         <div class="report-collapse-body">
@@ -769,6 +784,102 @@ function buildJobLotReport() {
   });
 }
 
+function buildAskingVsSold() {
+  const sorted = [...listingsData].sort((a, b) => b.askingPrice - a.askingPrice);
+  const deltas = sorted.filter((m) => m.deltaPercent !== null);
+
+  // Summary cards
+  const overAsking = deltas.filter((m) => m.delta > 0).length;
+  const underAsking = deltas.filter((m) => m.delta < 0).length;
+  const atAsking = deltas.filter((m) => m.delta === 0).length;
+  const overDeltaList = deltas.filter((m) => m.delta > 0);
+  const avgOverPct = overDeltaList.length > 0
+    ? overDeltaList.reduce((s, m) => s + m.deltaPercent, 0) / overDeltaList.length
+    : 0;
+  const offersOver = deltas.filter((m) => m.askingType === "offers_over");
+  const ooMedian = offersOver.length > 0
+    ? offersOver.map((m) => m.deltaPercent).sort((a, b) => a - b)[Math.floor(offersOver.length / 2)]
+    : null;
+
+  document.getElementById("asking-vs-sold-summary").innerHTML = [
+    { label: "Sold Over Asking", value: Math.round((overAsking / deltas.length) * 100) + "%", sub: overAsking + " of " + deltas.length },
+    { label: "Avg Over Asking", value: "+" + avgOverPct.toFixed(1) + "%", sub: overDeltaList.length + " sales above asking" },
+    { label: "Offers Over Median", value: ooMedian !== null ? ((ooMedian > 0 ? "+" : "") + ooMedian.toFixed(1) + "%") : "—", sub: offersOver.length + " O/O sales" },
+    { label: "At or Under Asking", value: atAsking + underAsking, sub: Math.round(((atAsking + underAsking) / deltas.length) * 100) + "% of sales" },
+  ].map((c) =>
+    `<div class="summary-card"><div class="summary-value">${c.value}</div><div class="summary-label">${c.label}</div>${c.sub ? `<div class="summary-sub">${c.sub}</div>` : ""}</div>`
+  ).join("");
+
+  // Set chart height proportional to number of properties (25px per bar)
+  const chartContainer = document.getElementById("chart-asking-vs-sold").parentElement;
+  chartContainer.style.height = Math.max(400, sorted.length * 25) + "px";
+
+  // Chart: horizontal bar — % over/under asking per property
+  new Chart(document.getElementById("chart-asking-vs-sold"), {
+    type: "bar",
+    data: {
+      labels: sorted.map((m) => {
+        const parts = m.address.split(",");
+        return parts[0].length > 25 ? parts[0].substring(0, 22) + "..." : parts[0];
+      }),
+      datasets: [{
+        label: "% Over/Under Asking",
+        data: sorted.map((m) => m.deltaPercent),
+        backgroundColor: sorted.map((m) =>
+          m.delta > 0 ? "rgba(34, 197, 94, 0.7)" : m.delta < 0 ? "rgba(239, 68, 68, 0.7)" : "rgba(148, 163, 184, 0.7)"
+        ),
+        borderColor: sorted.map((m) =>
+          m.delta > 0 ? "#16a34a" : m.delta < 0 ? "#dc2626" : "#94a3b8"
+        ),
+        borderWidth: 1,
+      }],
+    },
+    options: {
+      indexAxis: "y",
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            title: (items) => sorted[items[0].dataIndex].address,
+            label: (ctx) => {
+              const m = sorted[ctx.dataIndex];
+              return [
+                "Asked: " + formatPrice(m.askingPrice) + " (" + (m.askingType === "offers_over" ? "O/O" : m.askingType) + ")",
+                "Sold: " + formatPrice(m.soldPrice) + " on " + m.soldDate,
+                "Delta: " + (m.delta > 0 ? "+" : "") + formatPrice(m.delta) + " (" + (m.deltaPercent > 0 ? "+" : "") + m.deltaPercent + "%)",
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: { callback: (v) => (v > 0 ? "+" : "") + v + "%" },
+          grid: { color: (ctx) => ctx.tick.value === 0 ? "#333" : "#e5e7eb" },
+        },
+        y: {
+          ticks: { font: { size: 10 } },
+        },
+      },
+    },
+  });
+
+  // Table
+  const tbody = document.querySelector("#asking-vs-sold-table tbody");
+  tbody.innerHTML = sorted.map((m) => {
+    const deltaColor = m.delta > 0 ? "color:#16a34a" : m.delta < 0 ? "color:#dc2626" : "";
+    const deltaStr = (m.delta > 0 ? "+" : "") + formatPrice(m.delta) + " (" + (m.deltaPercent > 0 ? "+" : "") + m.deltaPercent + "%)";
+    return `<tr>
+      <td>${m.address}</td>
+      <td class="price-cell">${formatPrice(m.askingPrice)}</td>
+      <td class="price-cell">${formatPrice(m.soldPrice)}</td>
+      <td class="price-cell" style="${deltaColor}">${deltaStr}</td>
+    </tr>`;
+  }).join("");
+}
+
 function initCharts() {
   Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   Chart.defaults.color = "#555";
@@ -776,6 +887,9 @@ function initCharts() {
   buildSummaryCards();
   buildTopSalesTable();
   buildJobLotReport();
+  if (typeof listingsData !== "undefined" && listingsData.length > 0) {
+    buildAskingVsSold();
+  }
 
   // 1. Price trend line chart (reliable years only)
   new Chart(document.getElementById("chart-price-trend"), {
