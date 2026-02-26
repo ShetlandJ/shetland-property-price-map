@@ -128,7 +128,8 @@ function parseCards(html, source) {
     if (!address) return;
 
     const postcode = extractPostcode(address);
-    const price = parsePrice(priceText);
+    // Price is usually in the <p>, but sometimes it's combined in the <h4>
+    const price = parsePrice(priceText) || parsePrice(priceType);
     const { bedrooms, propertyType } = parseDetails(details);
 
     let status = "for_sale";

@@ -258,6 +258,12 @@ function runMatching() {
       continue;
     }
 
+    // Only match sold listings — active/under offer haven't completed sale yet
+    if (listing.status === "for_sale" || listing.status === "under_offer") {
+      unmatched.push({ listing, reason: "not yet sold" });
+      continue;
+    }
+
     const match = findBestMatch(listing, scotlisIndex);
 
     if (!match) {
