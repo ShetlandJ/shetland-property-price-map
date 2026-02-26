@@ -11,11 +11,11 @@ function getPriceBand(price) {
   return PRICE_BANDS.find((band) => price <= band.max);
 }
 
-// Delta bands for asking vs sold view (diverging blue → grey → red)
+// Delta bands for asking vs sold view (diverging blue → green → red)
 const DELTA_BANDS = [
   { max: -10, color: "#1e40af", label: "10%+ under asking" },
   { max: -1,  color: "#60a5fa", label: "1–10% under" },
-  { max: 1,   color: "#9ca3af", label: "At asking (±1%)" },
+  { max: 1,   color: "#22c55e", label: "At asking (±1%)" },
   { max: 10,  color: "#f87171", label: "1–10% over" },
   { max: Infinity, color: "#991b1b", label: "10%+ over asking" },
 ];
