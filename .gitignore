@@ -3,4 +3,3 @@ data.json
 node_modules/
 package.json
 package-lock.json
-listings_data.js
