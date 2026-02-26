@@ -108,6 +108,7 @@ const properties = [
   { lat: 60.359435, lng: -1.270142, price: 870000, address: "1 MULLA, VOE, SHETLAND, ZE2 9XQ", date: "2006-08-31" },
   { lat: 60.359435, lng: -1.270142, price: 185000, address: "1 MULLA, VOE, SHETLAND, ZE2 9XQ", date: "2022-06-10" },
   { lat: 60.146655, lng: -1.169237, price: 245000, address: "1 MURRAYSTON, LERWICK, SHETLAND, ZE1 0RE", date: "2017-09-29" },
+  { lat: 60.146655, lng: -1.169237, price: 375000, address: "1 MURRAYSTON, LERWICK, SHETLAND, ZE1 0RE", date: "2026-02-19" },
   { lat: 60.152197, lng: -1.144115, price: 25500, address: "1 NAVY LANE, LERWICK, SHETLAND, ZE1 0BS", date: "2007-12-20" },
   { lat: 60.137755, lng: -1.274531, price: 260000, address: "1 NEW ROAD, SCALLOWAY, SHETLAND, ZE1 0TS", date: "2022-12-01" },
   { lat: 60.227839, lng: -1.568392, price: 125000, address: "1 NEW ROAD, WALLS, SHETLAND, ZE2 9PQ", date: "2020-10-22" },
