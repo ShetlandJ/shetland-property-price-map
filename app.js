@@ -213,6 +213,60 @@ if (typeof listingsData !== "undefined") {
 
 const coordIndex = {};
 
+// --- Build popup HTML (called on click, so reflects current view mode) ---
+function buildPopupHtml(group) {
+  let html = `<div class="popup-address">${group.sales[0].address}</div>`;
+
+  // Asking vs Sold info when delta view is active
+  const listing = listingsByAddress[group.sales[0].address];
+  if (deltaViewActive && listing) {
+    const sign = listing.deltaPercent > 0 ? "+" : "";
+    const deltaColor = listing.deltaPercent > 0 ? "#991b1b" : listing.deltaPercent < 0 ? "#1e40af" : "#22c55e";
+    html += `<div class="popup-delta-info">`;
+    html += `<div class="popup-delta-row"><span>Asked</span><span>${formatPrice(listing.askingPrice)}</span></div>`;
+    html += `<div class="popup-delta-row"><span>Sold</span><span>${formatPrice(listing.soldPrice)}</span></div>`;
+    html += `<div class="popup-delta-row popup-delta-result" style="color:${deltaColor}"><span>Delta</span><span>${sign}${formatPrice(listing.delta)} (${sign}${listing.deltaPercent.toFixed(1)}%)</span></div>`;
+    html += `</div>`;
+  } else if (deltaViewActive && !listing) {
+    html += `<div class="popup-delta-info"><div class="popup-delta-none">No asking price data</div></div>`;
+  }
+
+  html += '<div class="popup-sales-list">';
+  group.sales.forEach((s) => {
+    const dateStr = s.date
+      ? new Date(s.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" })
+      : "";
+    const priceStr =
+      s.price != null
+        ? formatPrice(s.price)
+        : `<span class="popup-no-price">${s.note || "No price"}</span>`;
+    const jobLotBadge = s.jobLot ? '<span class="popup-job-lot">Job lot</span>' : "";
+    html += `<div class="popup-sale-row">
+      <span class="popup-sale-date">${dateStr}</span>
+      <span class="popup-sale-price">${priceStr}${jobLotBadge}</span>
+    </div>`;
+  });
+  html += "</div>";
+
+  // Show linked job lot properties
+  const jobLotSale = group.sales.find((s) => s._jobLotKey);
+  if (jobLotSale) {
+    const linked = [...datePricePostcodeBuckets.get(jobLotSale._jobLotKey)]
+      .filter((addr) => addr !== group.sales[0].address)
+      .sort();
+    if (linked.length > 0) {
+      html += `<div class="popup-job-lot-group">`;
+      html += `<div class="popup-job-lot-header">Job lot with ${linked.length} other propert${linked.length === 1 ? "y" : "ies"}</div>`;
+      html += linked.map((addr) =>
+        `<a class="popup-job-lot-link" href="#" onclick="event.preventDefault();goToJobLotAddress('${addr.replace(/'/g, "\\'")}')">${addr}</a>`
+      ).join("");
+      html += `</div>`;
+    }
+  }
+
+  return html;
+}
+
 // --- Marker layer ---
 const markerLayer = L.layerGroup();
 const groupMarkers = []; // groupMarkers[i] corresponds to groups[i]
@@ -237,42 +291,7 @@ groups.forEach((group, i) => {
   marker._origStyle = { fillColor: band.color, color: "#fff", weight: 2, radius: 6 };
   marker._group = group;
 
-  // Build popup with sale history
-  let popupHtml = `<div class="popup-address">${group.sales[0].address}</div>`;
-  popupHtml += '<div class="popup-sales-list">';
-  group.sales.forEach((s) => {
-    const dateStr = s.date
-      ? new Date(s.date).toLocaleDateString("en-GB", { year: "numeric", month: "short" })
-      : "";
-    const priceStr =
-      s.price != null
-        ? formatPrice(s.price)
-        : `<span class="popup-no-price">${s.note || "No price"}</span>`;
-    const jobLotBadge = s.jobLot ? '<span class="popup-job-lot">Job lot</span>' : "";
-    popupHtml += `<div class="popup-sale-row">
-      <span class="popup-sale-date">${dateStr}</span>
-      <span class="popup-sale-price">${priceStr}${jobLotBadge}</span>
-    </div>`;
-  });
-  popupHtml += "</div>";
-
-  // Show linked job lot properties
-  const jobLotSale = group.sales.find((s) => s._jobLotKey);
-  if (jobLotSale) {
-    const linked = [...datePricePostcodeBuckets.get(jobLotSale._jobLotKey)]
-      .filter((addr) => addr !== group.sales[0].address)
-      .sort();
-    if (linked.length > 0) {
-      popupHtml += `<div class="popup-job-lot-group">`;
-      popupHtml += `<div class="popup-job-lot-header">Job lot with ${linked.length} other propert${linked.length === 1 ? "y" : "ies"}</div>`;
-      popupHtml += linked.map((addr) =>
-        `<a class="popup-job-lot-link" href="#" onclick="event.preventDefault();goToJobLotAddress('${addr.replace(/'/g, "\\'")}')">${addr}</a>`
-      ).join("");
-      popupHtml += `</div>`;
-    }
-  }
-
-  marker.bindPopup(popupHtml, { maxWidth: 280, minWidth: 200 });
+  marker.bindPopup(() => buildPopupHtml(group), { maxWidth: 280, minWidth: 200 });
 
   markerLayer.addLayer(marker);
   groupMarkers[i] = marker;

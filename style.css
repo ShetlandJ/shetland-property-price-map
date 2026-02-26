@@ -857,6 +857,33 @@ html, body {
   font-weight: 400;
 }
 
+.popup-delta-info {
+  margin: 8px 0;
+  padding: 8px;
+  background: #f8fafc;
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.popup-delta-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+}
+
+.popup-delta-result {
+  font-weight: 700;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+.popup-delta-none {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+}
+
 .popup-job-lot-group {
   margin-top: 8px;
   padding-top: 8px;
