@@ -11,6 +11,19 @@ function getPriceBand(price) {
   return PRICE_BANDS.find((band) => price <= band.max);
 }
 
+// Delta bands for asking vs sold view (diverging blue → grey → red)
+const DELTA_BANDS = [
+  { max: -10, color: "#1e40af", label: "10%+ under asking" },
+  { max: -1,  color: "#60a5fa", label: "1–10% under" },
+  { max: 1,   color: "#9ca3af", label: "At asking (±1%)" },
+  { max: 10,  color: "#f87171", label: "1–10% over" },
+  { max: Infinity, color: "#991b1b", label: "10%+ over asking" },
+];
+
+function getDeltaBand(deltaPercent) {
+  return DELTA_BANDS.find((band) => deltaPercent <= band.max);
+}
+
 function formatPrice(price) {
   return "£" + price.toLocaleString("en-GB");
 }
@@ -190,6 +203,12 @@ function jitter(lat, lng, index, total) {
   const angle = (2 * Math.PI * index) / total;
   const radius = 0.0002 + 0.00005 * Math.floor(index / 8); // ~20m, expand in rings
   return [lat + radius * Math.sin(angle), lng + radius * Math.cos(angle)];
+}
+
+// Index listingsData by address for delta view colouring
+const listingsByAddress = {};
+if (typeof listingsData !== "undefined") {
+  listingsData.forEach((l) => { listingsByAddress[l.address] = l; });
 }
 
 const coordIndex = {};
@@ -453,6 +472,70 @@ const InfoControl = L.Control.extend({
 });
 
 new InfoControl().addTo(map);
+
+// --- Asking vs Sold delta view toggle ---
+let deltaViewActive = false;
+
+function toggleDeltaView() {
+  deltaViewActive = !deltaViewActive;
+  const btn = document.querySelector(".delta-toggle-btn");
+  if (btn) btn.classList.toggle("active", deltaViewActive);
+
+  updateLegend();
+  updateMobileLegend();
+
+  groupMarkers.forEach((marker) => {
+    const group = marker._group;
+    if (deltaViewActive) {
+      const listing = listingsByAddress[group.sales[0].address];
+      if (listing) {
+        const band = getDeltaBand(listing.deltaPercent);
+        marker.setStyle({ fillColor: band.color, fillOpacity: 0.85 });
+      } else {
+        marker.setStyle({ fillColor: "#d1d5db", fillOpacity: 0.4 });
+      }
+    } else {
+      marker.setStyle({ fillColor: marker._origStyle.fillColor, fillOpacity: 0.85 });
+    }
+  });
+}
+
+function updateLegend() {
+  const legendEl = document.querySelector(".legend-control");
+  if (!legendEl) return;
+  const bands = deltaViewActive ? DELTA_BANDS : PRICE_BANDS;
+  const title = deltaViewActive ? "Asking vs Sold" : "Price";
+  legendEl.innerHTML = `<h3>${title}</h3>` + bands.map((band) => `
+    <div class="legend-item">
+      <div class="legend-color" style="background: ${band.color}"></div>
+      ${band.label}
+    </div>
+  `).join("");
+}
+
+function updateMobileLegend() {
+  const sheetLegendItems = document.querySelector(".sheet-legend-items");
+  if (!sheetLegendItems) return;
+  const bands = deltaViewActive ? DELTA_BANDS : PRICE_BANDS;
+  sheetLegendItems.innerHTML = bands.map((band) =>
+    `<div class="sheet-legend-item"><span class="sheet-legend-color" style="background:${band.color}"></span>${band.label}</div>`
+  ).join("");
+}
+
+const DeltaToggleControl = L.Control.extend({
+  options: { position: "topright" },
+  onAdd() {
+    const container = L.DomUtil.create("div", "delta-toggle-control");
+    container.innerHTML = '<button class="delta-toggle-btn" aria-label="Toggle asking vs sold price view">Asking vs Sold</button>';
+    L.DomEvent.disableClickPropagation(container);
+    container.querySelector(".delta-toggle-btn").addEventListener("click", toggleDeltaView);
+    return container;
+  },
+});
+
+if (typeof listingsData !== "undefined" && listingsData.length > 0) {
+  new DeltaToggleControl().addTo(map);
+}
 
 // Build overlay DOM
 const infoOverlay = document.createElement("div");

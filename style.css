@@ -52,6 +52,33 @@ html, body {
   accent-color: #2563eb;
 }
 
+/* Delta view toggle */
+.delta-toggle-control {
+  margin-bottom: 0;
+}
+
+.delta-toggle-btn {
+  background: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #444;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  transition: background 0.2s, color 0.2s;
+}
+
+.delta-toggle-btn:hover {
+  background: #f3f4f6;
+}
+
+.delta-toggle-btn.active {
+  background: #2563eb;
+  color: white;
+}
+
 /* Legend */
 .legend-control {
   background: white;
