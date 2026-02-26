@@ -146,6 +146,11 @@ function findBestMatch(listing, scotlisIndex) {
   // It's a locality if it appears only as a later part, or if ScotLIS has
   // numbered addresses on this name (e.g., "1 MURRAYSTON", "2 MURRAYSTON")
   const listingFirst = listingParts[0] || "";
+
+  // Reject bare road/street names without a house number (e.g. "HILLSIDE ROAD")
+  const ROAD_WORDS = /\b(ROAD|STREET|LANE|DRIVE|CRESCENT|PLACE|CLOSE|WAY|WYND|TERRACE|COURT|AVENUE|GARDENS|HILL|SQUARE)\b/i;
+  if (ROAD_WORDS.test(listingFirst) && !/\d/.test(listingFirst)) return null;
+
   const isHouseName = candidateFirstParts.has(listingFirst);
   const isNumberedStreet = candidateFirstParts.has(listingFirst)
     ? false
