@@ -614,6 +614,14 @@ infoOverlay.innerHTML = `
           </table>
         </div>
       </div>
+      <div class="report-collapse">
+        <button class="report-collapse-header"><span>Asking vs Sold Trend</span><span class="report-collapse-chevron">&#9654;</span></button>
+        <div class="report-collapse-body">
+          <p class="report-description">How has the gap between asking and sold prices changed over time? Median % delta by quarter.</p>
+          <div id="asking-vs-sold-trend-summary" class="report-summary-cards"></div>
+          <div class="chart-container"><canvas id="chart-asking-vs-sold-trend"></canvas></div>
+        </div>
+      </div>
       ` : ""}
 
       <div class="report-collapse">
@@ -984,6 +992,93 @@ function buildAskingVsSold() {
   }).join("");
 }
 
+function buildAskingVsSoldTrend() {
+  // Group by quarter
+  const quarters = {};
+  listingsData.forEach((m) => {
+    if (m.deltaPercent === null) return;
+    const d = new Date(m.soldDate);
+    const q = "Q" + (Math.floor(d.getMonth() / 3) + 1) + " " + d.getFullYear();
+    if (!quarters[q]) quarters[q] = { label: q, year: d.getFullYear(), qNum: Math.floor(d.getMonth() / 3) + 1, deltas: [] };
+    quarters[q].deltas.push(m.deltaPercent);
+  });
+
+  // Sort chronologically and filter to quarters with 3+ sales
+  const sorted = Object.values(quarters)
+    .sort((a, b) => a.year - b.year || a.qNum - b.qNum);
+  const MIN_QUARTER_SALES = 3;
+  const reliable = sorted.filter((q) => q.deltas.length >= MIN_QUARTER_SALES);
+
+  if (reliable.length < 2) return; // Not enough data for a trend
+
+  const medianOf = (arr) => {
+    const s = [...arr].sort((a, b) => a - b);
+    return s.length % 2 ? s[Math.floor(s.length / 2)] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2;
+  };
+
+  const labels = reliable.map((q) => q.label);
+  const medians = reliable.map((q) => +medianOf(q.deltas).toFixed(2));
+  const counts = reliable.map((q) => q.deltas.length);
+
+  // Summary: earliest vs latest quarter
+  const first = reliable[0];
+  const last = reliable[reliable.length - 1];
+  const firstMedian = medianOf(first.deltas);
+  const lastMedian = medianOf(last.deltas);
+  const trendDir = lastMedian > firstMedian ? "up" : lastMedian < firstMedian ? "down" : "flat";
+
+  document.getElementById("asking-vs-sold-trend-summary").innerHTML = [
+    { label: "Latest Quarter", value: (lastMedian > 0 ? "+" : "") + lastMedian.toFixed(1) + "%", sub: last.label + " (" + last.deltas.length + " sales)" },
+    { label: "Trend", value: trendDir === "up" ? "Rising" : trendDir === "down" ? "Falling" : "Flat", sub: first.label + " → " + last.label },
+    { label: "Highest Quarter", value: (Math.max(...medians) > 0 ? "+" : "") + Math.max(...medians).toFixed(1) + "%", sub: labels[medians.indexOf(Math.max(...medians))] },
+  ].map((c) =>
+    `<div class="summary-card"><div class="summary-value">${c.value}</div><div class="summary-label">${c.label}</div>${c.sub ? `<div class="summary-sub">${c.sub}</div>` : ""}</div>`
+  ).join("");
+
+  new Chart(document.getElementById("chart-asking-vs-sold-trend"), {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Median % Over/Under Asking",
+        data: medians,
+        borderColor: "#2563eb",
+        backgroundColor: "rgba(37, 99, 235, 0.1)",
+        fill: true,
+        tension: 0.3,
+        pointRadius: 5,
+        pointBackgroundColor: medians.map((v) => v >= 0 ? "#16a34a" : "#dc2626"),
+        pointBorderColor: medians.map((v) => v >= 0 ? "#16a34a" : "#dc2626"),
+      }],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => {
+              const i = ctx.dataIndex;
+              const v = medians[i];
+              return [
+                "Median: " + (v > 0 ? "+" : "") + v + "%",
+                "Sales: " + counts[i],
+              ];
+            },
+          },
+        },
+      },
+      scales: {
+        y: {
+          ticks: { callback: (v) => (v > 0 ? "+" : "") + v + "%" },
+          grid: { color: (ctx) => ctx.tick.value === 0 ? "#333" : "#e5e7eb" },
+        },
+      },
+    },
+  });
+}
+
 function initCharts() {
   Chart.defaults.font.family = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
   Chart.defaults.color = "#555";
@@ -993,6 +1088,7 @@ function initCharts() {
   buildJobLotReport();
   if (typeof listingsData !== "undefined" && listingsData.length > 0) {
     buildAskingVsSold();
+    buildAskingVsSoldTrend();
   }
 
   // 1. Price trend line chart (reliable years only)
